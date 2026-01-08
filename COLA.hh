@@ -21,11 +21,16 @@
 #ifndef COLA_COLA_HH
 #define COLA_COLA_HH
 
-#include <unordered_map>
 #include <memory>
+#include <optional>
+#include <unordered_map>
 #include <vector>
 
 #include "LorentzVector.hh"
+
+namespace tinyxml2 {
+    class XMLDocument;
+} // namespace tinyxml2
 
 namespace cola {
     using LorentzVector = LorentzVectorImpl<double>;
@@ -39,7 +44,7 @@ namespace cola {
      *  @param pdgCode PDG code of the ion.
      *  @return AZ of the ion.
      */
-    AZ PdgToAz(int pdgCode);
+    AZ PdgToAZ(int pdgCode);
 
     /** AZ to PDG code convverter.
      *  @param data AZ of the ion.
@@ -75,7 +80,7 @@ namespace cola {
      *  A structure representing data about a single particle
      */
     struct Particle {
-        AZ GetAz() const;
+        AZ GetAZ() const;
 
         LorentzVector position; /**< Position <t, x, y, z> vector. */
 
@@ -252,24 +257,44 @@ namespace cola {
 
     using FactoryMap = std::unordered_map<std::string, std::unique_ptr<VFactory>>;
 
-    class VGeneratorFactory: public VFactory {
+    class VGeneratorFactory : public VFactory {
       public:
         FilterType GetFilterType() const final {
-          return FilterType::GENERATOR;
+            return FilterType::GENERATOR;
         }
     };
 
-    class VConverterFactory: public VFactory {
+    class VConverterFactory : public VFactory {
       public:
         FilterType GetFilterType() const final {
-          return FilterType::CONVERTER;
+            return FilterType::CONVERTER;
         }
     };
 
-    class VWriterFactory: public VFactory {
+    class VWriterFactory : public VFactory {
       public:
         FilterType GetFilterType() const final {
-          return FilterType::WRITER;
+            return FilterType::WRITER;
+        }
+    };
+
+    template <typename Filter>
+    class GenericFactory : public VFactory {
+      public:
+        std::unique_ptr<VFilter> Create(const std::unordered_map<std::string, std::string>& /* metaData */) override {
+            return std::make_unique<Filter>();
+        }
+
+        FilterType GetFilterType() const final {
+            if constexpr (std::is_base_of_v<VGenerator, Filter>) {
+                return FilterType::GENERATOR;
+            } else if constexpr (std::is_base_of_v<VConverter, Filter>) {
+                return FilterType::CONVERTER;
+            } else if constexpr (std::is_base_of_v<VWriter, Filter>) {
+                return FilterType::WRITER;
+            } else {
+                static_assert(true, "unhandled 'FilterType' value");
+            }
         }
     };
 
@@ -329,10 +354,18 @@ namespace cola {
          */
         FilterEnsemble Parse(const std::string& fName) const;
 
+        /** A method to parse a XML-file to set up a configured FilterEnsemble.
+         *  @param contents configuration XML-file contents
+         *  @return A configured FilterEnsemble.
+         */
+        FilterEnsemble Parse(std::istream& contents) const;
+
       private:
         FactoryMap generatorMap_;
         FactoryMap converterMap_;
         FactoryMap writerMap_;
+
+        FilterEnsemble BuildFilterEnsemble(const tinyxml2::XMLDocument& document) const;
 
         void RegisterGenerator(std::unique_ptr<VFactory>&& factory, const std::string& name) {
             generatorMap_.emplace(name, std::move(factory));
@@ -366,6 +399,28 @@ namespace cola {
       private:
         FilterEnsemble filterEnsemble_;
     };
+
+    class VModule {
+      public:
+        VModule() = default;
+
+        FactoryMap GetModuleFilters(const std::optional<std::string>& prefix = std::nullopt) const;
+
+        virtual ~VModule() = default;
+
+      private:
+        virtual FactoryMap DoGetModuleFilters() const = 0;
+    };
+
+    std::unique_ptr<cola::VModule> LoadModule(const std::string& moduleName,
+                                              const std::optional<std::string>& libDirectory = std::nullopt);
 } // namespace cola
+
+extern "C" {
+/** Loads COLA module in runtime, shouldn't be used directly
+ * @return A cola::VModule class wrapping specific COLA module
+ */
+cola::VModule* LoadCOLAModule();
+}
 
 #endif // COLA_COLA_HH

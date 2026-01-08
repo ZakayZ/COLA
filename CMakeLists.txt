@@ -25,7 +25,6 @@ project(
 
 set(CMAKE_CXX_STANDARD 17)
 
-# Add internal dependency to build
 add_subdirectory(tinyxml2)
 
 add_library(COLA SHARED COLA.cc)
