@@ -29,6 +29,8 @@ using namespace cola;
 
 class TestGenerator : public VGenerator {
   public:
+    static inline const std::string NAME = "TestGenerator";
+
     int callCounter = 0;
     EventData referenceData = GetDefaultEventData();
 
@@ -60,6 +62,8 @@ class TestGenerator : public VGenerator {
 
 class TestConverter : public VConverter {
   public:
+    static inline const std::string NAME = "TestConverter";
+
     int callCounter = 0;
 
     std::unique_ptr<EventData> operator()(std::unique_ptr<EventData>&& data) override {
@@ -74,6 +78,8 @@ class TestConverter : public VConverter {
 
 class TestWriter : public VWriter {
   public:
+    static inline const std::string NAME = "TestWriter";
+
     int callCounter = 0;
     std::vector<std::unique_ptr<EventData>> recordedEvents;
 
@@ -147,15 +153,15 @@ TEST(COLA_Parse, BadXMLContents) {
 TEST(COLA_Parse, NoGenerator) {
     auto xmlStream = std::stringstream(R"(<?xml version="1.0"?>
     <root>
-        <converter name="test_converter"/>
-        <writer name="test_writer"/>
+        <converter name="TestConverter"/>
+        <writer name="TestWriter"/>
     </root>
     )");
 
     MetaProcessor processor;
-    processor.Register(std::make_unique<GenericFactory<TestGenerator>>(), "test_generator");
-    processor.Register(std::make_unique<GenericFactory<TestConverter>>(), "test_converter");
-    processor.Register(std::make_unique<GenericFactory<TestWriter>>(), "test_writer");
+    processor.Register(std::make_unique<GenericFactory<TestGenerator>>(), "TestGenerator");
+    processor.Register(std::make_unique<GenericFactory<TestConverter>>(), "TestConverter");
+    processor.Register(std::make_unique<GenericFactory<TestWriter>>(), "TestWriter");
 
     EXPECT_THROW(processor.Parse(xmlStream), std::runtime_error);
 }
@@ -163,12 +169,12 @@ TEST(COLA_Parse, NoGenerator) {
 TEST(COLA_Parse, NoWriter) {
     auto xmlStream = std::stringstream(R"(<?xml version="1.0"?>
     <root>
-        <generator name="test_generator"/>
+        <generator name="TestGenerator"/>
     </root>
     )");
 
     MetaProcessor processor;
-    processor.Register(std::make_unique<GenericFactory<TestGenerator>>(), "test_generator");
+    processor.Register(std::make_unique<GenericFactory<TestGenerator>>(), "TestGenerator");
 
     EXPECT_THROW(processor.Parse(xmlStream), std::runtime_error);
 }
@@ -176,16 +182,16 @@ TEST(COLA_Parse, NoWriter) {
 TEST(COLA_Parse, MultipleGenerators) {
     auto xmlStream = std::stringstream(R"(<?xml version="1.0"?>
     <root>
-        <generator name="test_generator"/>
-        <generator name="test_generator"/>
-        <writer name="test_writer"/>
+        <generator name="TestGenerator"/>
+        <generator name="TestGenerator"/>
+        <writer name="TestWriter"/>
     </root>
     )");
 
     MetaProcessor processor;
-    processor.Register(std::make_unique<GenericFactory<TestGenerator>>(), "test_generator");
-    processor.Register(std::make_unique<GenericFactory<TestConverter>>(), "test_converter");
-    processor.Register(std::make_unique<GenericFactory<TestWriter>>(), "test_writer");
+    processor.Register(std::make_unique<GenericFactory<TestGenerator>>(), "TestGenerator");
+    processor.Register(std::make_unique<GenericFactory<TestConverter>>(), "TestConverter");
+    processor.Register(std::make_unique<GenericFactory<TestWriter>>(), "TestWriter");
 
     EXPECT_THROW(processor.Parse(xmlStream), std::runtime_error);
 }
@@ -193,16 +199,16 @@ TEST(COLA_Parse, MultipleGenerators) {
 TEST(COLA_Parse, MultipleWriters) {
     auto xmlStream = std::stringstream(R"(<?xml version="1.0"?>
     <root>
-        <generator name="test_generator"/>
-        <writer name="test_writer"/>
-        <writer name="test_writer"/>
+        <generator name="TestGenerator"/>
+        <writer name="TestWriter"/>
+        <writer name="TestWriter"/>
     </root>
     )");
 
     MetaProcessor processor;
-    processor.Register(std::make_unique<GenericFactory<TestGenerator>>(), "test_generator");
-    processor.Register(std::make_unique<GenericFactory<TestConverter>>(), "test_converter");
-    processor.Register(std::make_unique<GenericFactory<TestWriter>>(), "test_writer");
+    processor.Register(std::make_unique<GenericFactory<TestGenerator>>(), "TestGenerator");
+    processor.Register(std::make_unique<GenericFactory<TestConverter>>(), "TestConverter");
+    processor.Register(std::make_unique<GenericFactory<TestWriter>>(), "TestWriter");
 
     EXPECT_THROW(processor.Parse(xmlStream), std::runtime_error);
 }
@@ -271,16 +277,16 @@ TEST(ColaTest, StageHandling) {
 TEST(ColaTest, ParseAndRun) {
     auto xmlStream = std::stringstream(R"(<?xml version="1.0"?>
     <root>
-        <generator name="test_generator"/>
-        <converter name="test_converter"/>
-        <writer name="test_writer"/>
+        <generator name="TestGenerator"/>
+        <converter name="TestConverter"/>
+        <writer name="TestWriter"/>
     </root>
     )");
 
     MetaProcessor processor;
-    processor.Register(std::make_unique<GenericFactory<TestGenerator>>(), "test_generator");
-    processor.Register(std::make_unique<GenericFactory<TestConverter>>(), "test_converter");
-    processor.Register(std::make_unique<GenericFactory<TestWriter>>(), "test_writer");
+    processor.Register(std::make_unique<GenericFactory<TestGenerator>>(), "TestGenerator");
+    processor.Register(std::make_unique<GenericFactory<TestConverter>>(), "TestConverter");
+    processor.Register(std::make_unique<GenericFactory<TestWriter>>(), "TestWriter");
 
     auto ensemble = processor.Parse(xmlStream);
 

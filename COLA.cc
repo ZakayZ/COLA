@@ -147,18 +147,19 @@ namespace cola {
         }
     }
 
-    void MetaProcessor::Register(std::unique_ptr<VFactory>&& factory, const std::string& name) {
+    void MetaProcessor::Register(std::unique_ptr<VFactory>&& factory, const std::optional<std::string>& name) {
+        auto filterName = name.value_or(factory->GetFilterName());
         switch (factory->GetFilterType()) {
             case FilterType::GENERATOR: {
-                RegisterGenerator(std::move(factory), name);
+                RegisterGenerator(std::move(factory), filterName);
                 break;
             }
             case FilterType::CONVERTER: {
-                RegisterConverter(std::move(factory), name);
+                RegisterConverter(std::move(factory), filterName);
                 break;
             }
             case FilterType::WRITER: {
-                RegisterWriter(std::move(factory), name);
+                RegisterWriter(std::move(factory), filterName);
                 break;
             }
             default: {

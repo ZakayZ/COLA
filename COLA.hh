@@ -23,6 +23,7 @@
 
 #include <memory>
 #include <optional>
+#include <type_traits>
 #include <unordered_map>
 #include <vector>
 
@@ -253,6 +254,8 @@ namespace cola {
         virtual std::unique_ptr<VFilter> Create(const std::unordered_map<std::string, std::string>& metaData) = 0;
 
         virtual FilterType GetFilterType() const = 0;
+
+        virtual const std::string& GetFilterName() const = 0;
     };
 
     using FactoryMap = std::unordered_map<std::string, std::unique_ptr<VFactory>>;
@@ -280,9 +283,29 @@ namespace cola {
 
     template <typename Filter>
     class GenericFactory : public VFactory {
+      private:
+        template<typename, typename = void>
+        struct HasName : std::false_type {};
+        
+        template<typename T>
+        struct HasName<T, std::void_t<decltype(T::NAME)>> : std::true_type {};
+
+        template<typename T>
+        static constexpr bool HAS_NAME = HasName<T>::value;
+
       public:
+        GenericFactory() {
+            static_assert(std::is_base_of_v<VFilter, Filter>, "Filter template must inherit cola::VFilter");
+            static_assert(HAS_NAME<Filter>, "Filter class must have NAME class variable");
+            static_assert(std::is_same_v<std::remove_reference_t<std::remove_cv_t<decltype(Filter::NAME)>>, std::string>, "NAME variable must be a string");
+        }
+
         std::unique_ptr<VFilter> Create(const std::unordered_map<std::string, std::string>& /* metaData */) override {
             return std::make_unique<Filter>();
+        }
+
+        const std::string& GetFilterName() const final {
+            return Filter::NAME;
         }
 
         FilterType GetFilterType() const final {
@@ -340,7 +363,7 @@ namespace cola {
          * @param factory A rvalue-reference to the Filter factory pointer
          * @param name The name of the Filter.
          */
-        void Register(std::unique_ptr<VFactory>&& factory, const std::string& name);
+        void Register(std::unique_ptr<VFactory>&& factory, const std::optional<std::string>& name = std::nullopt);
 
         /** A method to parse a XML-file to set up a configured FilterEnsemble.
          *  This method opens an XML-file @param fName to get the information to set up the model.
@@ -410,6 +433,30 @@ namespace cola {
 
       private:
         virtual FactoryMap DoGetModuleFilters() const = 0;
+    };
+
+    template <typename... FilterTypes>
+    class GenericModule : public VModule {
+      private:
+        template <typename HeadType, typename... Types>
+        static void AddFilter(FactoryMap& factories) {
+            static_assert(std::is_base_of_v<VFactory, HeadType>, "all types must be Factories");
+
+            {
+                auto factory = std::make_unique<HeadType>();
+                factories[factory->GetFilterName()] = std::move(factory);
+            }
+
+            if (sizeof...(Types) > 0) {
+                AddFilter<Types...>(factories);
+            }
+        }
+
+        FactoryMap DoGetModuleFilters() const override {
+            FactoryMap factories;
+            AddFilter<FilterTypes...>(factories);
+            return factories;
+        }
     };
 
     std::unique_ptr<cola::VModule> LoadModule(const std::string& moduleName,
