@@ -22,7 +22,6 @@
 
 #include <cmath>
 #include <cstdint>
-#include <cstdlib>
 #include <dlfcn.h>
 #include <filesystem>
 #include <iostream>
@@ -30,7 +29,6 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 
 #include <tinyxml2.h>
 
@@ -71,13 +69,9 @@ namespace {
 
     template <typename Target, typename Source>
     std::unique_ptr<Target> DynamicPointerCast(std::unique_ptr<Source>&& ptr) {
-        Source* raw = ptr.release();
-        auto* derived = dynamic_cast<Target*>(raw);
-        if (derived == nullptr) {
-            delete raw;
-            throw std::runtime_error("DynamicPointerCast: type mismatch");
-        }
-        return std::unique_ptr<Target>(derived);
+        auto result = std::unique_ptr<Target>(&dynamic_cast<Target&>(*ptr.get()));
+        ptr.release();
+        return result;
     }
 
     std::string ReadAll(std::istream& is) {
@@ -184,7 +178,6 @@ namespace cola {
     FilterEnsemble MetaProcessor::Parse(std::istream& contents) const {
         tinyxml2::XMLDocument document;
         auto str = ReadAll(contents);
-        std::cerr << str << '\n';
         auto code = document.Parse(str.c_str());
         if (code != tinyxml2::XML_SUCCESS) {
             throw std::runtime_error("ERROR in MetaProcessor: bad XML file.\nError code (tinyxml2): " +
@@ -200,16 +193,7 @@ namespace cola {
         std::vector<std::unique_ptr<VConverter>> converters;
         std::unique_ptr<VWriter> writer;
 
-        const tinyxml2::XMLElement* root = document.RootElement();
-        if (root == nullptr) {
-            throw std::runtime_error("Empty XML document");
-        }
-
-        for (const auto* elem = root->FirstChildElement(); elem != nullptr; elem = elem->NextSiblingElement()) {
-            if (writer != nullptr) {
-                throw std::runtime_error("Unexpected element after writer");
-            }
-
+        for (const auto* elem = document.RootElement()->FirstChildElement(); elem != nullptr; elem = elem->NextSiblingElement()) { // nolint
             if (elem->Name() == "generator"sv) {
                 if (generator != nullptr) {
                     throw std::runtime_error("Found multiple generators");
@@ -219,6 +203,9 @@ namespace cola {
             }
             if (generator == nullptr) {
                 throw std::runtime_error("Exactly one generator must be described first");
+            }
+            if (writer != nullptr) {
+                throw std::runtime_error("Exactly one writer must be described last");
             }
 
             if (elem->Name() == "converter"sv) {
@@ -242,11 +229,11 @@ namespace cola {
             throw std::runtime_error("No writer found");
         }
 
-        FilterEnsemble ensemble;
-        ensemble.generator = std::move(generator);
-        ensemble.converters = std::move(converters);
-        ensemble.writer = std::move(writer);
-        return ensemble;
+        return {
+            .generator = std::move(generator),
+            .converters = std::move(converters),
+            .writer = std::move(writer),
+        };
     }
 
     // Run manager

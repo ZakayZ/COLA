@@ -32,9 +32,6 @@ namespace cola {
         Type x, y, z;
     };
 
-    template <typename Type>
-    Vector3<Type> RotateUz(const Vector3<Type> stVec, const Vector3<Type> uzVec);
-
     template <typename Type = double>
     class LorentzVectorImpl {
       public:
@@ -112,15 +109,15 @@ namespace cola {
                 // calculate direction vector coordinates
                 Type b1 = std::sqrt(b2);
                 Vector3<Type> rVec{bx / b1, by / b1, bz / b1};
-                Vector3<Type> rBack = RotateUz({0, 0, 1}, rVec);
+                Vector3<Type> rBack = rotateUz({0, 0, 1}, rVec);
 
                 // rotate space vector so that boost direction is {0, 0, 1} in new coordinates
-                auto newCoord = RotateUz({x, y, z}, rVec);
+                auto newCoord = rotateUz({x, y, z}, rVec);
                 x = newCoord.x, y = newCoord.y, z = newCoord.z;
 
                 BoostAxisRapidity(std::atanh(b1)); // boost along Oz
                 // rotate back
-                newCoord = RotateUz({x, y, z}, rBack);
+                newCoord = rotateUz({x, y, z}, rBack);
                 x = newCoord.x, y = newCoord.y, z = newCoord.z;
             }
 
