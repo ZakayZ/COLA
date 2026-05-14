@@ -21,116 +21,20 @@
 #ifndef COLA_COLA_HH
 #define COLA_COLA_HH
 
-#include "LorentzVector.hh"
+#include "COLA/EventData.hh"
 
-#include <cstdint>
-#include <map>
 #include <memory>
+#include <optional>
+#include <type_traits>
+#include <unordered_map>
 #include <vector>
 
+namespace tinyxml2 {
+  class XMLDocument;
+}  // namespace tinyxml2
+
 namespace cola {
-  using LorentzVector = LorentzVectorImpl<double>;
-
-  /** A typedef representing mass and charge of a nucleon.
-   */
-  using AZ = std::pair<std::uint16_t, std::uint16_t>;
-
-  /** PDG code to AZ converter.
-   *  **WARNING:** this function is intended to process heavy ions PDG codes.
-   *  @param pdgCode PDG code of the ion.
-   *  @return AZ of the ion.
-   */
-  AZ PdgToAz(int pdgCode);
-
-  /** AZ to PDG code converter.
-   *  @param data AZ of the ion.
-   *  @return PDG code of the ion
-   */
-  int AZToPdg(AZ data);
-
-  /** \defgroup Data Data Classes and supporting methods.
-   * @{
-   */
-
-  /** Particle class by generator output.
-   *  This enum represents various outcomes of a generator event for every particle.
-   */
-  enum class ParticleClass : char {
-    kProduced,    /**< A particle that was not present in the starting nuclei. */
-    kElasticA,    /**< A particle that was present in the projectile nucleus and has experienced only elastic
-                   * interactions.
-                   */
-    kElasticB,    /**< A particle that was present in the target nucleus and has experienced only elastic interactions.
-                   */
-    kNonelasticA, /**< A particle that was present in the projectile nucleus and has experienced at least one
-                    non-elastic interaction. */
-    kNonelasticB, /**< A particle that was present in the target nucleus and has experienced at least one
-                    non-elastic interaction. */
-    kSpectatorA,  /**< A particle that was present in the projectile nucleus and hasn't experienced any interactions.
-                   */
-    kSpectatorB   /**< A particle that was present in the projectile nucleus and hasn't experienced any interactions.
-                   */
-  };
-
-  /** Particle data.
-   *  A structure representing data about a single particle
-   */
-  struct Particle {
-    AZ GetAz() const;
-
-    LorentzVector position; /**< Position <t, x, y, z> vector. */
-
-    LorentzVector momentum; /**< Momentum <e, x, y, z> vector. */
-
-    int pdgCode;          /**< PDG code of the particle. */
-    ParticleClass pClass; /**< Data about particle origin. See ParticleClass for more info.*/
-  };
-
-  /**
-   * Convenient typedef for Particle vector.
-   */
-  using EventParticles = std::vector<Particle>;
-
-  /** Initial state data.
-   *  This structure contains data about initial state of any given event.
-   */
-  struct EventIniState {
-    int pdgCodeA; /**< PDF code of the projectile. */
-    int pdgCodeB; /**< PDF code of the target. */
-
-    double pZA;    /** Axial momentum of the projectile */
-    double pZB;    /** Axial momentum of the target */
-    double energy; /** Incidental energy of the event. Depending on pZB being zero, this is either \f$E/A\f$ of
-                      target or \f$\sqrt{s_{NN}}\f$. */
-
-    float sectNN; /** Nucleon-Nucleon cross section from generator. */
-    float b;      /** Impact parameter of the event. */
-
-    int nColl;   /** Diagnostic. Total number of collisions. */
-    int nCollPP; /** Diagnostic. Number of proton-proton. */
-    int nCollPN; /** Diagnostic. Number of proton-neutron collisions. */
-    int nCollNN; /** Diagnostic. Number of neutron-neutron collisions. */
-    int nPart;   /** Diagnostic. Total number of participants. */
-    int nPartA;  /** Diagnostic. Number of participants from the projectile nucleus. */
-    int nPartB;  /** Diagnostic. Number of participants from the target nucleus. */
-
-    float phiRotA;   /** Diagnostic. Polar angle \f$\phi\f$ of rotation of the projectile nucleon. */
-    float thetaRotA; /** Diagnostic. Polar angle \f&\Theta\f$ of rotation of the projectile nucleon. */
-    float phiRotB;   /** Diagnostic. Polar angle \f$\phi\f$ of rotation of the target nucleon. */
-    float thetaRotB; /** Diagnostic. Polar angle \f$\Theta\f$ of rotation of the target nucleon. */
-
-    EventParticles iniStateParticles; /** The array of all Particles just before the event. */
-  };
-
-  /** A structure combining EventIniState and EventParticles of the event.
-   */
-  struct EventData {
-    EventIniState iniState;
-    EventParticles particles;
-  };
-
-  /** @}
-   * \defgroup Interface Pure abstract classes used for dependency injection.
+  /** \defgroup Interface Pure abstract classes used for dependency injection.
    * @{
    */
 
@@ -220,6 +124,10 @@ namespace cola {
 
   inline VWriter::~VWriter() = default;
 
+  /** An enum for marking Filter types.
+   */
+  enum class FilterType : char { kGenerator, kConverter, kWriter };
+
   /** Factory abstract class.
    * This is a factory interface. It generates a Filter with its VFactory::create method. DI in COLA works via using
    * the factory classes, which are registered in a MetaProcessor instance.
@@ -238,7 +146,67 @@ namespace cola {
      *  @param metaData A dictionary with key-value pairs needed for configuring a model.
      *  @return A configured class that is a VFilter child.
      */
-    virtual VFilter* Create(const std::map<std::string, std::string>& metaData) = 0;
+    virtual std::unique_ptr<VFilter> Create(const std::unordered_map<std::string, std::string>& metaData) = 0;
+
+    virtual FilterType GetFilterType() const = 0;
+
+    virtual const std::string& GetFilterName() const = 0;
+  };
+
+  using FactoryMap = std::unordered_map<std::string, std::unique_ptr<VFactory>>;
+
+  class VGeneratorFactory : public VFactory {
+   public:
+    FilterType GetFilterType() const final { return FilterType::kGenerator; }
+  };
+
+  class VConverterFactory : public VFactory {
+   public:
+    FilterType GetFilterType() const final { return FilterType::kConverter; }
+  };
+
+  class VWriterFactory : public VFactory {
+   public:
+    FilterType GetFilterType() const final { return FilterType::kWriter; }
+  };
+
+  template <typename Filter>
+  class GenericFactory : public VFactory {
+   private:
+    template <typename, typename = void>
+    struct HasName : std::false_type {};
+
+    template <typename T>
+    struct HasName<T, std::void_t<decltype(T::kName)>> : std::true_type {};
+
+    template <typename T>
+    static constexpr bool kHasName = HasName<T>::value;
+
+   public:
+    GenericFactory() {
+      static_assert(std::is_base_of_v<VFilter, Filter>, "Filter template must inherit cola::VFilter");
+      static_assert(kHasName<Filter>, "Filter class must have kName class variable");
+      static_assert(std::is_same_v<std::remove_reference_t<std::remove_cv_t<decltype(Filter::kName)>>, std::string>,
+                    "kName variable must be a string");
+    }
+
+    std::unique_ptr<VFilter> Create(const std::unordered_map<std::string, std::string>& /* metaData */) override {
+      return std::make_unique<Filter>();
+    }
+
+    const std::string& GetFilterName() const final { return Filter::kName; }
+
+    FilterType GetFilterType() const final {
+      if constexpr (std::is_base_of_v<VGenerator, Filter>) {
+        return FilterType::kGenerator;
+      } else if constexpr (std::is_base_of_v<VConverter, Filter>) {
+        return FilterType::kConverter;
+      } else if constexpr (std::is_base_of_v<VWriter, Filter>) {
+        return FilterType::kWriter;
+      } else {
+        static_assert(true, "unhandled 'FilterType' value");
+      }
+    }
   };
 
   std::unique_ptr<EventData> operator|(const std::unique_ptr<VGenerator>& /*generator*/,
@@ -247,9 +215,6 @@ namespace cola {
                                        const std::unique_ptr<VConverter>& /*converter*/);
   void operator|(std::unique_ptr<EventData>&& /*data*/, const std::unique_ptr<VWriter>& /*writer*/);
 
-  /** An enum for marking Filter types.
-   */
-  enum class FilterType : char { kGenerator, kConverter, kWriter };
   /** @}
    *  \defgroup Metadata Classes for constructing and running a model.
    *  @{
@@ -278,16 +243,15 @@ namespace cola {
      * @param filterMap A dictionary with all relevant information. Note that unique pointers in the dictionary are
      * invalidated.
      */
-    explicit MetaProcessor(std::map<std::string, std::pair<std::unique_ptr<VFactory>, FilterType>>& filterMap);
+    explicit MetaProcessor(FactoryMap&& filterMap);
 
     ~MetaProcessor() = default;
 
     /** A method for registering new Filters.
      * @param factory A rvalue-reference to the Filter factory pointer
      * @param name The name of the Filter.
-     * @param type The type of the Filter. See FilterType.
      */
-    void Reg(std::unique_ptr<VFactory>&& factory, const std::string& name, FilterType type);
+    void Register(std::unique_ptr<VFactory>&& factory, const std::optional<std::string>& name = std::nullopt);
 
     /** A method to parse a XML-file to set up a configured FilterEnsemble.
      *  This method opens an XML-file @param fName to get the information to set up the model.
@@ -301,18 +265,26 @@ namespace cola {
      */
     FilterEnsemble Parse(const std::string& fName) const;
 
-   private:
-    std::map<std::string, std::unique_ptr<VFactory>> generatorMap_;
-    std::map<std::string, std::unique_ptr<VFactory>> converterMap_;
-    std::map<std::string, std::unique_ptr<VFactory>> writerMap_;
+    /** A method to parse a XML-file to set up a configured FilterEnsemble.
+     *  @param contents configuration XML-file contents
+     *  @return A configured FilterEnsemble.
+     */
+    FilterEnsemble Parse(std::istream& contents) const;
 
-    void RegGen(std::unique_ptr<VFactory>&& factory, const std::string& name) {
+   private:
+    FactoryMap generatorMap_;
+    FactoryMap converterMap_;
+    FactoryMap writerMap_;
+
+    FilterEnsemble BuildFilterEnsemble(const tinyxml2::XMLDocument& document) const;
+
+    void RegisterGenerator(std::unique_ptr<VFactory>&& factory, const std::string& name) {
       generatorMap_.emplace(name, std::move(factory));
     }
-    void RegConv(std::unique_ptr<VFactory>&& factory, const std::string& name) {
+    void RegisterConverter(std::unique_ptr<VFactory>&& factory, const std::string& name) {
       converterMap_.emplace(name, std::move(factory));
     }
-    void RegWrite(std::unique_ptr<VFactory>&& factory, const std::string& name) {
+    void RegisterWriter(std::unique_ptr<VFactory>&& factory, const std::string& name) {
       writerMap_.emplace(name, std::move(factory));
     }
   };
@@ -322,12 +294,13 @@ namespace cola {
    */
   class ColaRunManager {
    public:
-    ColaRunManager() = delete;
     /** A constructor that moves the configured FilterEnsemble into the manager.
      * @param ensemble Configured model.
      */
     explicit ColaRunManager(FilterEnsemble&& ensemble) : filterEnsemble_(std::move(ensemble)) {}
+
     ~ColaRunManager() = default;
+
     /** A method to run the resulting model @param n times.
      * @param n Number of runs.
      */
@@ -336,6 +309,52 @@ namespace cola {
    private:
     FilterEnsemble filterEnsemble_;
   };
+
+  class VModule {
+   public:
+    VModule() = default;
+
+    FactoryMap GetModuleFilters(const std::optional<std::string>& prefix = std::nullopt) const;
+
+    virtual ~VModule() = default;
+
+   private:
+    virtual FactoryMap DoGetModuleFilters() const = 0;
+  };
+
+  template <typename... FilterTypes>
+  class GenericModule : public VModule {
+   private:
+    template <typename HeadType, typename... Types>
+    static void AddFilter(FactoryMap& factories) {
+      static_assert(std::is_base_of_v<VFactory, HeadType>, "all types must be Factories");
+
+      {
+        auto factory = std::make_unique<HeadType>();
+        factories[factory->GetFilterName()] = std::move(factory);
+      }
+
+      if constexpr (sizeof...(Types) > 0) {
+        AddFilter<Types...>(factories);
+      }
+    }
+
+    FactoryMap DoGetModuleFilters() const override {
+      FactoryMap factories;
+      AddFilter<FilterTypes...>(factories);
+      return factories;
+    }
+  };
+
+  std::unique_ptr<cola::VModule> LoadModule(const std::string& moduleName,
+                                            const std::optional<std::string>& libDirectory = std::nullopt);
 }  // namespace cola
+
+extern "C" {
+/** Loads COLA module in runtime, shouldn't be used directly
+ * @return A cola::VModule class wrapping specific COLA module
+ */
+cola::VModule* LoadCOLAModule();
+}
 
 #endif  // COLA_COLA_HH
