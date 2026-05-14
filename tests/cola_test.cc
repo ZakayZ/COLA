@@ -36,18 +36,17 @@ namespace {
       AppendMakeVector(results, std::forward<Args>(args)...);
     }
   }
-  
+
   template <typename T, typename... Args>
   std::vector<T> MakeVector(T&& arg, Args&&... args) {
     std::vector<T> results;
-  
+
     AppendMakeVector(results, std::forward<T>(arg), std::forward<Args>(args)...);
-  
+
     return results;
   }
-  
-  }  // namespace
-  
+
+}  // namespace
 
 class TestGenerator : public VGenerator {
  public:

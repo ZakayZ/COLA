@@ -1,21 +1,20 @@
 /**
  * Copyright (c) 2024-2025 Alexandr Svetlichnyi, Savva Savenkov, Artemii Novikov
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
+ * Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
+ * associated documentation files (the "Software"), to deal in the Software without restriction,
+ * including without limitation the rights to use, copy, modify, merge, publish, distribute,
+ * sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in all copies or
+ * substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
- * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT
+ * NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+ * DAMAGES OR OTHER* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
 
 #ifndef COLA_LORENTZVECTOR_HH
@@ -23,15 +22,22 @@
 
 #include <array>
 #include <cmath>
+#include <cstdint>
 #include <iostream>
+#include <stdexcept>
 
 namespace cola {
 
-  template <typename Type = double> struct Vector3 {
+  template <typename Type = double>
+  struct Vector3 {
     Type x, y, z;
   };
 
-  template <typename Type = double> class LorentzVectorImpl {
+  template <typename Type>
+  Vector3<Type> RotateUz(Vector3<Type> stVec, Vector3<Type> uzVec);
+
+  template <typename Type = double>
+  class LorentzVectorImpl {
    public:
     union {
       Type e;
@@ -102,15 +108,15 @@ namespace cola {
         // calculate direction vector coordinates
         Type b1 = std::sqrt(b2);
         Vector3<Type> r_vec{bx / b1, by / b1, bz / b1};
-        Vector3<Type> r_back = rotateUz({0, 0, 1}, r_vec);
+        Vector3<Type> r_back = RotateUz({0, 0, 1}, r_vec);
 
         // rotate space vector so that boost direction is {0, 0, 1} in new coordinates
-        auto new_coord = rotateUz({x, y, z}, r_vec);
+        auto new_coord = RotateUz({x, y, z}, r_vec);
         x = new_coord.x, y = new_coord.y, z = new_coord.z;
 
         BoostAxisRapidity(std::atanh(b1));  // boost along Oz
         // rotate back
-        new_coord = rotateUz({x, y, z}, r_back);
+        new_coord = RotateUz({x, y, z}, r_back);
         x = new_coord.x, y = new_coord.y, z = new_coord.z;
       }
 
@@ -176,20 +182,24 @@ namespace cola {
     return res;
   }
 
-  template <typename Type> bool operator==(const LorentzVectorImpl<Type>& a, const LorentzVectorImpl<Type>& b) {
+  template <typename Type>
+  bool operator==(const LorentzVectorImpl<Type>& a, const LorentzVectorImpl<Type>& b) {
     return a.e == b.e && a.x == b.x && a.y == b.y && a.z == b.z;
   }
 
-  template <typename Type> bool operator!=(const LorentzVectorImpl<Type>& a, const LorentzVectorImpl<Type>& b) {
+  template <typename Type>
+  bool operator!=(const LorentzVectorImpl<Type>& a, const LorentzVectorImpl<Type>& b) {
     return !(a == b);
   }
 
-  template <typename Type> std::ostream& operator<<(std::ostream& out, const LorentzVectorImpl<Type>& vec) {
+  template <typename Type>
+  std::ostream& operator<<(std::ostream& out, const LorentzVectorImpl<Type>& vec) {
     out << "(" << vec.e << ", " << vec.x << ", " << vec.y << ", " << vec.z << ")";
     return out;
   }
 
-  template <typename Type> Vector3<Type> RotateUz(const Vector3<Type> stVec, const Vector3<Type> uzVec) {
+  template <typename Type>
+  Vector3<Type> RotateUz(const Vector3<Type> stVec, const Vector3<Type> uzVec) {
     // NewUzVector must be normalized !
 
     Vector3<Type> res_vec;

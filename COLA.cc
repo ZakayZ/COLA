@@ -280,8 +280,7 @@ namespace cola {
       for (const auto& entry : std::filesystem::directory_iterator(cola_entry.path())) {
         if (entry.path().extension() == ".so" || entry.path().extension() == ".dylib") {
           if (auto* library_handler = dlopen(entry.path().c_str(), RTLD_LAZY); library_handler != nullptr) {
-            if (auto* raw_function_ptr = dlsym(library_handler, function_name.c_str());
-                raw_function_ptr != nullptr) {
+            if (auto* raw_function_ptr = dlsym(library_handler, function_name.c_str()); raw_function_ptr != nullptr) {
               auto* function_ptr = reinterpret_cast<LoadModuleFunction*>(raw_function_ptr);
               return std::unique_ptr<cola::VModule>(function_ptr());
             }

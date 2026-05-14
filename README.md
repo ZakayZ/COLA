@@ -1,5 +1,8 @@
 # COLA - Nuclear COllision LAyout framework
 
+[![CI](https://github.com/Spectator-matter-group-INR-RAS/COLA/actions/workflows/ci.yml/badge.svg)](https://github.com/Spectator-matter-group-INR-RAS/COLA/actions/workflows/ci.yml)
+[![Docs](https://img.shields.io/badge/docs-Doxygen-2c5f7c)](https://github.com/Spectator-matter-group-INR-RAS/COLA/blob/main/README.md#documentation)
+
 Architectural framework for merging nucleus-nucleus collision models.
 
 ## Installation
@@ -16,7 +19,7 @@ cmake --build . --target install
 
 You can specify `CMAKE_INSTALL_PREFIX` to change the installation location (default for most Linux systems is `/usr/local`, which requires root)
 
-In the installation directory there is `config.sh` file, which should be sourced to add CMake package location to indexed directories list (in case the installation directory is not standart for the system). Consider adding it to `.profile` or `.bashrc`
+In the installation directory there is `config.sh` file, which should be sourced to add CMake package location to indexed directories list (in case the installation directory is not standard for the system). Consider adding it to `.profile` or `.bashrc`
 
 ## Documentation
 

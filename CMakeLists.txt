@@ -23,8 +23,6 @@ project(
     LANGUAGES CXX
 )
 
-set(CMAKE_CXX_STANDARD 17)
-
 add_subdirectory(tinyxml2)
 
 add_library(COLA SHARED COLA.cc)
@@ -44,7 +42,7 @@ set(COLA_CMAKE_CXX_CLANG_TIDY
 
 set_target_properties(
     COLA
-    PROPERTIES PUBLIC_HEADER "COLA.hh;LorentzVector.hh"
+    PROPERTIES PUBLIC_HEADER "COLA.hh"
                VERSION "${COLA_VERSION}"
                SOVERSION "${COLA_VERSION_MAJOR}"
                CXX_CLANG_TIDY "${COLA_CMAKE_CXX_CLANG_TIDY}"
@@ -72,6 +70,13 @@ write_basic_package_version_file(
 )
 
 install(EXPORT COLAExport DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/COLA)
+
+install(
+    DIRECTORY ${PROJECT_SOURCE_DIR}/COLA
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    FILES_MATCHING
+    PATTERN "*.hh"
+)
 
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/COLAConfig.cmake"
               "${CMAKE_CURRENT_BINARY_DIR}/COLAConfigVersion.cmake"

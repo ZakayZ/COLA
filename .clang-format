@@ -20,6 +20,6 @@ IncludeCategories:
     Priority:        3
   - Regex:           '.*'
     Priority:        4
-AlwaysBreakTemplateDeclarations: false
+AlwaysBreakTemplateDeclarations: true
 BreakConstructorInitializers: BeforeComma
 ...
