@@ -214,7 +214,7 @@ namespace cola {
       res_vec.x = -stVec.x;
       res_vec.y = stVec.y;
       res_vec.z = -stVec.z;
-    }  // phi=0  teta=pi
+    }  // phi=0  theta=pi
 
     return res_vec;
   }

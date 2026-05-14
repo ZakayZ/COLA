@@ -131,7 +131,7 @@ namespace cola {
     (*writer)(std::move(data));
   }
 
-  // Metaprocessor
+  // MetaProcessor
 
   MetaProcessor::MetaProcessor(FactoryMap&& filterMap) {
     for (auto& [name, factory] : filterMap) {

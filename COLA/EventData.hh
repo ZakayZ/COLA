@@ -93,8 +93,8 @@ namespace cola {
    *  This structure contains data about initial state of any given event.
    */
   struct EventIniState {
-    int pdgCodeA; /**< PDF code of the projectile. */
-    int pdgCodeB; /**< PDF code of the target. */
+    int pdgCodeA; /**< PDG code of the projectile. */
+    int pdgCodeB; /**< PDG code of the target. */
 
     double pZA;    /** Axial momentum of the projectile */
     double pZB;    /** Axial momentum of the target */

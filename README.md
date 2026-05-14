@@ -7,7 +7,7 @@ Architectural framework for merging nucleus-nucleus collision models.
 
 ## Installation
 
-in source directory:
+In source directory:
 
 ```bash
 cd ../
@@ -19,7 +19,7 @@ cmake --build . --target install
 
 You can specify `CMAKE_INSTALL_PREFIX` to change the installation location (default for most Linux systems is `/usr/local`, which requires root)
 
-In the installation directory there is `config.sh` file, which should be sourced to add CMake package location to indexed directories list (in case the installation directory is not standard for the system). Consider adding it to `.profile` or `.bashrc`
+In the installation directory there is a `config.sh` file, which should be sourced to add CMake package location to indexed directories list (in case the installation directory is not standard for the system). Consider adding it to `.profile` or `.bashrc`
 
 ## Documentation
 
