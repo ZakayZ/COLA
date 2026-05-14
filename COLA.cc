@@ -20,9 +20,11 @@
 
 #include "COLA.hh"
 
+#include <dlfcn.h>
+#include <tinyxml2.h>
+
 #include <cmath>
 #include <cstdint>
-#include <dlfcn.h>
 #include <filesystem>
 #include <iostream>
 #include <iterator>
@@ -30,273 +32,269 @@
 #include <string>
 #include <string_view>
 
-#include <tinyxml2.h>
-
 using namespace std::string_view_literals;
 
 namespace {
-    static const std::string FILTER_NAME_ATTRIBUTE = "name";
+  const std::string filter_name_attribute = "name";
 
-    std::unordered_map<std::string, std::string> CollectAttributes(const tinyxml2::XMLElement* element) {
-        std::unordered_map<std::string, std::string> params;
+  std::unordered_map<std::string, std::string> CollectAttributes(const tinyxml2::XMLElement* element) {
+    std::unordered_map<std::string, std::string> params;
 
-        for (const auto* attribute = element->FirstAttribute(); attribute != nullptr; attribute = attribute->Next()) {
-            params.emplace(attribute->Name(), attribute->Value());
-        }
-
-        return params;
+    for (const auto* attribute = element->FirstAttribute(); attribute != nullptr; attribute = attribute->Next()) {
+      params.emplace(attribute->Name(), attribute->Value());
     }
 
-    std::unique_ptr<cola::VFilter> CreateFilterFromNode(
-        const tinyxml2::XMLElement* element,
-        const std::unordered_map<std::string, std::unique_ptr<cola::VFactory>>& factoryMap) {
-        auto params = CollectAttributes(element);
+    return params;
+  }
 
-        const auto filterName = std::move(params.at(FILTER_NAME_ATTRIBUTE));
-        params.erase(FILTER_NAME_ATTRIBUTE);
+  std::unique_ptr<cola::VFilter> CreateFilterFromNode(
+      const tinyxml2::XMLElement* element,
+      const std::unordered_map<std::string, std::unique_ptr<cola::VFactory>>& factoryMap) {
+    auto params = CollectAttributes(element);
 
-        // log attributes
-        {
-            std::cout << "filter name: " + filterName + "\nparams:\n";
+    const auto filter_name = std::move(params.at(filter_name_attribute));
+    params.erase(filter_name_attribute);
 
-            for (const auto& [name, value] : params) {
-                std::cout << name << ": " << value << '\n';
-            }
-        }
+    // log attributes
+    {
+      std::cout << "filter name: " + filter_name + "\nparams:\n";
 
-        return factoryMap.at(filterName)->Create(params);
+      for (const auto& [name, value] : params) {
+        std::cout << name << ": " << value << '\n';
+      }
     }
 
-    template <typename Target, typename Source>
-    std::unique_ptr<Target> DynamicPointerCast(std::unique_ptr<Source>&& ptr) {
-        auto result = std::unique_ptr<Target>(&dynamic_cast<Target&>(*ptr.get()));
-        ptr.release();
-        return result;
-    }
+    return factoryMap.at(filter_name)->Create(params);
+  }
 
-    std::string ReadAll(std::istream& is) {
-        return std::string(std::istreambuf_iterator<char>(is), std::istreambuf_iterator<char>());
-    }
-} // namespace
+  template <typename Target, typename Source>
+  std::unique_ptr<Target> DynamicPointerCast(std::unique_ptr<Source>&& ptr) {
+    auto result = std::unique_ptr<Target>(&dynamic_cast<Target&>(*ptr.get()));
+    ptr.release();
+    return result;
+  }
+
+  std::string ReadAll(std::istream& is) {
+    return std::string(std::istreambuf_iterator<char>(is), std::istreambuf_iterator<char>());
+  }
+}  // namespace
 
 namespace cola {
 
-    // converters
+  // converters
 
-    AZ PdgToAZ(int pdgCode) {
-        switch (pdgCode) {
-            case 2112:
-                return {1, 0};
-            case 2212:
-                return {1, 1};
-            default: {
-                AZ data = {0, 0};
-                pdgCode /= 10;
-                for (int i = 0; i < 3; i++) {
-                    data.first += pdgCode % 10 * static_cast<uint16_t>(std::pow(10, i));
-                    pdgCode /= 10;
-                }
-                for (int i = 0; i < 3; i++) {
-                    data.second += pdgCode % 10 * static_cast<uint16_t>(std::pow(10, i));
-                    pdgCode /= 10;
-                }
-                return data;
-            }
+  AZ PdgToAZ(int pdgCode) {
+    switch (pdgCode) {
+      case 2112:
+        return {1, 0};
+      case 2212:
+        return {1, 1};
+      default: {
+        AZ data = {0, 0};
+        pdgCode /= 10;
+        for (int i = 0; i < 3; i++) {
+          data.first += pdgCode % 10 * static_cast<uint16_t>(std::pow(10, i));
+          pdgCode /= 10;
         }
+        for (int i = 0; i < 3; i++) {
+          data.second += pdgCode % 10 * static_cast<uint16_t>(std::pow(10, i));
+          pdgCode /= 10;
+        }
+        return data;
+      }
+    }
+  }
+
+  int AZToPdg(AZ data) {
+    if (data.first == 1 && data.second == 0) {
+      return 2112;
+    }
+    if (data.first == 1 && data.second == 1) {
+      return 2212;
+    }
+    return 1000000000 + data.first * 10 + data.second * 10000;
+  }
+
+  AZ Particle::GetAZ() const { return PdgToAZ(pdgCode); }
+
+  // operators
+
+  std::unique_ptr<EventData> operator|(const std::unique_ptr<VGenerator>& generator,
+                                       const std::unique_ptr<VConverter>& converter) {
+    return (*converter)((*generator)());
+  }
+  std::unique_ptr<EventData> operator|(std::unique_ptr<EventData>&& data,
+                                       const std::unique_ptr<VConverter>& converter) {
+    return (*converter)(std::move(data));
+  }
+  void operator|(std::unique_ptr<EventData>&& data, const std::unique_ptr<VWriter>& writer) {
+    (*writer)(std::move(data));
+  }
+
+  // Metaprocessor
+
+  MetaProcessor::MetaProcessor(FactoryMap&& filterMap) {
+    for (auto& [name, factory] : filterMap) {
+      Register(std::move(factory), name);
+    }
+  }
+
+  void MetaProcessor::Register(std::unique_ptr<VFactory>&& factory, const std::optional<std::string>& name) {
+    auto filter_name = name.value_or(factory->GetFilterName());
+    switch (factory->GetFilterType()) {
+      case FilterType::kGenerator: {
+        RegisterGenerator(std::move(factory), filter_name);
+        break;
+      }
+      case FilterType::kConverter: {
+        RegisterConverter(std::move(factory), filter_name);
+        break;
+      }
+      case FilterType::kWriter: {
+        RegisterWriter(std::move(factory), filter_name);
+        break;
+      }
+      default: {
+        throw std::domain_error("ERROR in MetaProcessor: No such type of filter.");
+      }
+    }
+  }
+
+  FilterEnsemble MetaProcessor::Parse(const std::string& fName) const {
+    using namespace tinyxml2;
+    std::cout << "Parsing XML file:" << '\n';
+    tinyxml2::XMLDocument file;
+    auto code = file.LoadFile(fName.c_str());
+    if (code != tinyxml2::XML_SUCCESS) {
+      throw std::runtime_error("ERROR in MetaProcessor: Couldn't open file `" + fName +
+                               "`.\nError code (tinyxml2): " + std::to_string(code));
     }
 
-    int AZToPdg(AZ data) {
-        if (data.first == 1 && data.second == 0) {
-            return 2112;
-        }
-        if (data.first == 1 && data.second == 1) {
-            return 2212;
-        }
-        return 1000000000 + data.first * 10 + data.second * 10000;
+    return BuildFilterEnsemble(file);
+  }
+
+  FilterEnsemble MetaProcessor::Parse(std::istream& contents) const {
+    tinyxml2::XMLDocument document;
+    auto str = ReadAll(contents);
+    auto code = document.Parse(str.c_str());
+    if (code != tinyxml2::XML_SUCCESS) {
+      throw std::runtime_error("ERROR in MetaProcessor: bad XML file.\nError code (tinyxml2): " + std::to_string(code));
     }
 
-    AZ Particle::GetAZ() const {
-        return PdgToAZ(pdgCode);
-    }
+    return BuildFilterEnsemble(document);
+  }
 
-    // operators
+  FilterEnsemble MetaProcessor::BuildFilterEnsemble(const tinyxml2::XMLDocument& document) const {
+    using namespace tinyxml2;
+    std::unique_ptr<VGenerator> generator;
+    std::vector<std::unique_ptr<VConverter>> converters;
+    std::unique_ptr<VWriter> writer;
 
-    std::unique_ptr<EventData> operator|(const std::unique_ptr<VGenerator>& generator,
-                                         const std::unique_ptr<VConverter>& converter) {
-        return (*converter)((*generator)());
-    }
-    std::unique_ptr<EventData> operator|(std::unique_ptr<EventData>&& data,
-                                         const std::unique_ptr<VConverter>& converter) {
-        return (*converter)(std::move(data));
-    }
-    void operator|(std::unique_ptr<EventData>&& data, const std::unique_ptr<VWriter>& writer) {
-        (*writer)(std::move(data));
-    }
-
-    // Metaprocessor
-
-    MetaProcessor::MetaProcessor(FactoryMap&& filterMap) {
-        for (auto& [name, factory] : filterMap) {
-            Register(std::move(factory), name);
+    for (const auto* elem = document.RootElement()->FirstChildElement(); elem != nullptr;
+         elem = elem->NextSiblingElement()) {
+      if (elem->Name() == "generator"sv) {
+        if (generator != nullptr) {
+          throw std::runtime_error("Found multiple generators");
         }
+        generator = DynamicPointerCast<VGenerator>(CreateFilterFromNode(elem, generatorMap_));
+        continue;
+      }
+      if (generator == nullptr) {
+        throw std::runtime_error("Exactly one generator must be described first");
+      }
+      if (writer != nullptr) {
+        throw std::runtime_error("Exactly one writer must be described last");
+      }
+
+      if (elem->Name() == "converter"sv) {
+        converters.emplace_back(DynamicPointerCast<VConverter>(CreateFilterFromNode(elem, converterMap_)));
+        continue;
+      }
+
+      if (elem->Name() == "writer"sv) {
+        writer = DynamicPointerCast<VWriter>(CreateFilterFromNode(elem, writerMap_));
+        continue;
+      }
+
+      throw std::runtime_error(std::string("Unknown node: ") + elem->Name());
     }
 
-    void MetaProcessor::Register(std::unique_ptr<VFactory>&& factory, const std::optional<std::string>& name) {
-        auto filterName = name.value_or(factory->GetFilterName());
-        switch (factory->GetFilterType()) {
-            case FilterType::GENERATOR: {
-                RegisterGenerator(std::move(factory), filterName);
-                break;
-            }
-            case FilterType::CONVERTER: {
-                RegisterConverter(std::move(factory), filterName);
-                break;
-            }
-            case FilterType::WRITER: {
-                RegisterWriter(std::move(factory), filterName);
-                break;
-            }
-            default: {
-                throw std::domain_error("ERROR in MetaProcessor: No such type of filter.");
-            }
-        }
+    if (generator == nullptr) {
+      throw std::runtime_error("No generator found");
     }
 
-    FilterEnsemble MetaProcessor::Parse(const std::string& fName) const {
-        using namespace tinyxml2;
-        std::cout << "Parsing XML file:" << '\n';
-        tinyxml2::XMLDocument file;
-        auto code = file.LoadFile(fName.c_str());
-        if (code != tinyxml2::XML_SUCCESS) {
-            throw std::runtime_error("ERROR in MetaProcessor: Couldn't open file `" + fName +
-                                     "`.\nError code (tinyxml2): " + std::to_string(code));
-        }
-
-        return BuildFilterEnsemble(file);
+    if (writer == nullptr) {
+      throw std::runtime_error("No writer found");
     }
 
-    FilterEnsemble MetaProcessor::Parse(std::istream& contents) const {
-        tinyxml2::XMLDocument document;
-        auto str = ReadAll(contents);
-        auto code = document.Parse(str.c_str());
-        if (code != tinyxml2::XML_SUCCESS) {
-            throw std::runtime_error("ERROR in MetaProcessor: bad XML file.\nError code (tinyxml2): " +
-                                     std::to_string(code));
-        }
+    return {
+        .generator = std::move(generator),
+        .converters = std::move(converters),
+        .writer = std::move(writer),
+    };
+  }
 
-        return BuildFilterEnsemble(document);
+  // Run manager
+
+  void ColaRunManager::Run(int n) const {
+    for (auto k = 0; k < n; ++k) {
+      auto event = (*(filterEnsemble_.generator))();
+      for (const auto& converter : filterEnsemble_.converters) {
+        event = std::move(event) | converter;
+      }
+      std::move(event) | filterEnsemble_.writer;
+    }
+  }
+
+  // COLA module
+
+  FactoryMap VModule::GetModuleFilters(const std::optional<std::string>& prefix) const {
+    auto factory_map = DoGetModuleFilters();
+    if (prefix.has_value()) {
+      FactoryMap prefix_map;
+      for (auto& [name, factory] : factory_map) {
+        prefix_map[*prefix + "." + name] = std::move(factory);
+      }
+      return prefix_map;
     }
 
-    FilterEnsemble MetaProcessor::BuildFilterEnsemble(const tinyxml2::XMLDocument& document) const {
-        using namespace tinyxml2;
-        std::unique_ptr<VGenerator> generator;
-        std::vector<std::unique_ptr<VConverter>> converters;
-        std::unique_ptr<VWriter> writer;
+    return factory_map;
+  }
 
-        for (const auto* elem = document.RootElement()->FirstChildElement(); elem != nullptr; elem = elem->NextSiblingElement()) { // nolint
-            if (elem->Name() == "generator"sv) {
-                if (generator != nullptr) {
-                    throw std::runtime_error("Found multiple generators");
-                }
-                generator = DynamicPointerCast<VGenerator>(CreateFilterFromNode(elem, generatorMap_));
-                continue;
-            }
-            if (generator == nullptr) {
-                throw std::runtime_error("Exactly one generator must be described first");
-            }
-            if (writer != nullptr) {
-                throw std::runtime_error("Exactly one writer must be described last");
-            }
+  static const std::string function_name = "LoadCOLAModule";
+  static const std::string env_dir_variable = "COLA_DIR";
+  using LoadModuleFunction = decltype(LoadCOLAModule);
 
-            if (elem->Name() == "converter"sv) {
-                converters.emplace_back(DynamicPointerCast<VConverter>(CreateFilterFromNode(elem, converterMap_)));
-                continue;
-            }
+  std::unique_ptr<cola::VModule> LoadModule(const std::string& moduleName,
+                                            const std::optional<std::string>& libDirectory) {
+    auto cola_directory = libDirectory.value_or(
+        std::getenv(env_dir_variable.c_str()) != nullptr ? std::getenv(env_dir_variable.c_str()) : "~/.local/lib");
+    if (cola_directory.size() > 1 && cola_directory.substr(0, 2) == "~/") {
+      cola_directory = std::filesystem::path(std::getenv("HOME")) / cola_directory.substr(2);
+    }
+    for (const auto& cola_entry : std::filesystem::directory_iterator(cola_directory)) {
+      if (!cola_entry.is_directory() || cola_entry.path().filename() != moduleName) {
+        continue;
+      }
 
-            if (elem->Name() == "writer"sv) {
-                writer = DynamicPointerCast<VWriter>(CreateFilterFromNode(elem, writerMap_));
-                continue;
+      for (const auto& entry : std::filesystem::directory_iterator(cola_entry.path())) {
+        if (entry.path().extension() == ".so" || entry.path().extension() == ".dylib") {
+          if (auto* library_handler = dlopen(entry.path().c_str(), RTLD_LAZY); library_handler != nullptr) {
+            if (auto* raw_function_ptr = dlsym(library_handler, function_name.c_str());
+                raw_function_ptr != nullptr) {
+              auto* function_ptr = reinterpret_cast<LoadModuleFunction*>(raw_function_ptr);
+              return std::unique_ptr<cola::VModule>(function_ptr());
             }
 
-            throw std::runtime_error(std::string("Unknown node: ") + elem->Name());
+            throw std::runtime_error("Failed to find " + function_name + " function from: " + entry.path().string());
+          }
+
+          throw std::runtime_error("Failed to load module: " + entry.path().string());
         }
-
-        if (generator == nullptr) {
-            throw std::runtime_error("No generator found");
-        }
-
-        if (writer == nullptr) {
-            throw std::runtime_error("No writer found");
-        }
-
-        return {
-            .generator = std::move(generator),
-            .converters = std::move(converters),
-            .writer = std::move(writer),
-        };
+      }
     }
 
-    // Run manager
+    throw std::runtime_error("Failed to find module: " + moduleName + " in: " + cola_directory);
+  }
 
-    void ColaRunManager::Run(int n) const {
-        for (auto k = 0; k < n; ++k) {
-            auto event = (*(filterEnsemble_.generator))();
-            for (const auto& converter : filterEnsemble_.converters) {
-                event = std::move(event) | converter;
-            }
-            std::move(event) | filterEnsemble_.writer;
-        }
-    }
-
-    // COLA module
-
-    FactoryMap VModule::GetModuleFilters(const std::optional<std::string>& prefix) const {
-        auto factoryMap = DoGetModuleFilters();
-        if (prefix.has_value()) {
-            FactoryMap prefixMap;
-            for (auto& [name, factory] : factoryMap) {
-                prefixMap[*prefix + "." + name] = std::move(factory);
-            }
-            return prefixMap;
-        }
-
-        return factoryMap;
-    }
-
-    static const std::string FUNCTION_NAME = "LoadCOLAModule";
-    static const std::string ENV_DIR_VARIABLE = "COLA_DIR";
-    using LoadModuleFunction = decltype(LoadCOLAModule);
-
-    std::unique_ptr<cola::VModule> LoadModule(const std::string& moduleName,
-                                              const std::optional<std::string>& libDirectory) {
-        auto colaDirectory = libDirectory.value_or(
-            std::getenv(ENV_DIR_VARIABLE.c_str()) != nullptr ? std::getenv(ENV_DIR_VARIABLE.c_str()) : "~/.local/lib");
-        if (colaDirectory.size() > 1 && colaDirectory.substr(0, 2) == "~/") {
-            colaDirectory = std::filesystem::path(std::getenv("HOME")) / colaDirectory.substr(2);
-        }
-        for (const auto& colaEntry : std::filesystem::directory_iterator(colaDirectory)) {
-            if (!colaEntry.is_directory() || colaEntry.path().filename() != moduleName) {
-                continue;
-            }
-
-            for (const auto& entry : std::filesystem::directory_iterator(colaEntry.path())) {
-                if (entry.path().extension() == ".so" || entry.path().extension() == ".dylib") {
-                    if (auto* libraryHandler = dlopen(entry.path().c_str(), RTLD_LAZY); libraryHandler != nullptr) {
-                        if (auto* rawFunctionPtr = dlsym(libraryHandler, FUNCTION_NAME.c_str()); rawFunctionPtr != nullptr) { // nolint
-                            auto* functionPtr = (LoadModuleFunction*)rawFunctionPtr;
-                            return std::unique_ptr<cola::VModule>(functionPtr());
-                        }
-
-                        throw std::runtime_error("Failed to find " + FUNCTION_NAME +
-                                                 " function from: " + entry.path().string());
-                    }
-
-                    throw std::runtime_error("Failed to load module: " + entry.path().string());
-                }
-            }
-        }
-
-        throw std::runtime_error("Failed to find module: " + moduleName + " in: " + colaDirectory);
-    }
-
-} // namespace cola
+}  // namespace cola

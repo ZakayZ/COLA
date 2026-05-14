@@ -27,209 +27,187 @@
 
 namespace cola {
 
-    template <typename Type = double>
-    struct Vector3 {
-        Type x, y, z;
+  template <typename Type = double> struct Vector3 {
+    Type x, y, z;
+  };
+
+  template <typename Type = double> class LorentzVectorImpl {
+   public:
+    union {
+      Type e;
+      Type t;
     };
+    Type x;
+    Type y;
+    Type z;
 
-    template <typename Type = double>
-    class LorentzVectorImpl {
-      public:
-        union {
-            Type e;
-            Type t;
-        };
-        Type x;
-        Type y;
-        Type z;
+   private:
+    using FieldPtr = Type LorentzVectorImpl::*;
 
-      private:
-        using FieldPtr = Type LorentzVectorImpl::*;
+    static constexpr std::array<FieldPtr, 4> kFields = {&LorentzVectorImpl::e, &LorentzVectorImpl::x,
+                                                        &LorentzVectorImpl::y, &LorentzVectorImpl::z};
 
-        static constexpr std::array<FieldPtr, 4> FIELDS = {&LorentzVectorImpl::e, &LorentzVectorImpl::x,
-                                                           &LorentzVectorImpl::y, &LorentzVectorImpl::z};
+   public:
+    const Type& operator[](int i) const { return this->*kFields[i]; }
+    Type& operator[](int i) { return this->*kFields[i]; }
 
-      public:
-        const Type& operator[](int i) const {
-            return this->*FIELDS[i];
-        }
-        Type& operator[](int i) {
-            return this->*FIELDS[i];
-        }
-
-        LorentzVectorImpl& operator+=(const LorentzVectorImpl& other) {
-            for (size_t i = 0; i < FIELDS.size(); ++i) {
-                this->*FIELDS[i] += other.*FIELDS[i];
-            }
-            return *this;
-        }
-
-        LorentzVectorImpl& operator-=(const LorentzVectorImpl& other) {
-            for (size_t i = 0; i < FIELDS.size(); ++i) {
-                this->*FIELDS[i] -= other.*FIELDS[i];
-            }
-            return *this;
-        }
-
-        LorentzVectorImpl& operator*=(Type scalar) {
-            for (size_t i = 0; i < FIELDS.size(); ++i) {
-                this->*FIELDS[i] *= scalar;
-            }
-            return *this;
-        }
-
-        LorentzVectorImpl& operator/=(Type scalar) {
-            for (size_t i = 0; i < FIELDS.size(); ++i) {
-                this->*FIELDS[i] /= scalar;
-            }
-            return *this;
-        }
-
-        // bx by and bz are projections of beta
-        LorentzVectorImpl& Boost(Type bx, Type by, Type bz) {
-
-            auto b2 = bx * bx + by * by + bz * bz;
-
-            if (b2 >= 1) {
-                throw std::runtime_error("Boost faster than speed of light.");
-            }
-            if (b2 <= .95 or not IsSpaceLike()) {
-                Type ggamma = 1.0 / std::sqrt(1.0 - b2);
-                Type bp = bx * x + by * y + bz * z;
-                Type gamma2 = b2 > 0 ? (ggamma - 1.0) / b2 : 0.0;
-
-                x = x + gamma2 * bp * bx + ggamma * bx * t;
-                y = y + gamma2 * bp * by + ggamma * by * t;
-                z = z + gamma2 * bp * bz + ggamma * bz * t;
-                t = ggamma * (t + bp);
-
-                // for big betas use rapidities instead (B = R^-1B'R, where B' is axis boost (Oz here) and R is Rotation
-                // matrix for spatial part)
-            } else {
-                // calculate direction vector coordinates
-                Type b1 = std::sqrt(b2);
-                Vector3<Type> rVec{bx / b1, by / b1, bz / b1};
-                Vector3<Type> rBack = rotateUz({0, 0, 1}, rVec);
-
-                // rotate space vector so that boost direction is {0, 0, 1} in new coordinates
-                auto newCoord = rotateUz({x, y, z}, rVec);
-                x = newCoord.x, y = newCoord.y, z = newCoord.z;
-
-                BoostAxisRapidity(std::atanh(b1)); // boost along Oz
-                // rotate back
-                newCoord = rotateUz({x, y, z}, rBack);
-                x = newCoord.x, y = newCoord.y, z = newCoord.z;
-            }
-
-            return *this;
-        }
-
-        // axis from 1 to 3 correspond to x-y-z. Note: this gives correct results only if other axes components are
-        // zero.
-        // TODO: Throw an error otherwise
-        LorentzVectorImpl& BoostAxisRapidity(Type rapidity, uint32_t axis = 3u) {
-            if (axis > 3 or axis < 1) {
-                throw std::runtime_error("Wrong axis in boostAxis. 1 for x, 2 for y, 3 for z.");
-            }
-            if (not IsSpaceLike()) {
-                throw std::runtime_error(
-                    "Rapidity calculation only viable for space-like 4-vectors. Use boost() instead");
-            }
-            Type inv = std::sqrt(e * e - this->*FIELDS[axis] * this->*FIELDS[axis]);
-            Type rRapidity = rapidity + .5 * (std::log(e + this->*FIELDS[axis]) - std::log(e - this->*FIELDS[axis]));
-            e = inv * std::cosh(rRapidity);
-            this->*FIELDS[axis] = inv * std::sinh(rRapidity);
-
-            return *this;
-        }
-
-        Type Mag2() const {
-            return t * t - (x * x + y * y + z * z);
-        }
-        Type Mag() const {
-            return std::sqrt(Mag2());
-        }
-
-        bool IsSpaceLike() const {
-            return Mag2() > 0;
-        }
-        bool IsLightLike() const {
-            return Mag2() == 0;
-        }
-        bool IsTimeLike() const {
-            return Mag2() < 0;
-        }
-    };
-
-    template <typename Type>
-    LorentzVectorImpl<Type> operator+(const LorentzVectorImpl<Type>& a, const LorentzVectorImpl<Type>& b) {
-        auto res = a;
-        res += b;
-        return res;
+    LorentzVectorImpl& operator+=(const LorentzVectorImpl& other) {
+      for (size_t i = 0; i < kFields.size(); ++i) {
+        this->*kFields[i] += other.*kFields[i];
+      }
+      return *this;
     }
 
-    template <typename Type>
-    LorentzVectorImpl<Type> operator-(const LorentzVectorImpl<Type>& a, const LorentzVectorImpl<Type>& b) {
-        auto res = a;
-        res -= b;
-        return res;
+    LorentzVectorImpl& operator-=(const LorentzVectorImpl& other) {
+      for (size_t i = 0; i < kFields.size(); ++i) {
+        this->*kFields[i] -= other.*kFields[i];
+      }
+      return *this;
     }
 
-    template <typename Type, typename Scalar>
-    LorentzVectorImpl<Type> operator*(const LorentzVectorImpl<Type>& vec, Scalar scalar) {
-        auto res = vec;
-        res *= scalar;
-        return res;
+    LorentzVectorImpl& operator*=(Type scalar) {
+      for (size_t i = 0; i < kFields.size(); ++i) {
+        this->*kFields[i] *= scalar;
+      }
+      return *this;
     }
 
-    template <typename Type, typename Scalar>
-    LorentzVectorImpl<Type> operator*(Scalar scalar, const LorentzVectorImpl<Type>& vec) {
-        return vec * scalar;
+    LorentzVectorImpl& operator/=(Type scalar) {
+      for (size_t i = 0; i < kFields.size(); ++i) {
+        this->*kFields[i] /= scalar;
+      }
+      return *this;
     }
 
-    template <typename Type, typename Scalar>
-    LorentzVectorImpl<Type> operator/(const LorentzVectorImpl<Type>& vec, Scalar scalar) {
-        auto res = vec;
-        res /= scalar;
-        return res;
+    // bx by and bz are projections of beta
+    LorentzVectorImpl& Boost(Type bx, Type by, Type bz) {
+      auto b2 = bx * bx + by * by + bz * bz;
+
+      if (b2 >= 1) {
+        throw std::runtime_error("Boost faster than speed of light.");
+      }
+      if (b2 <= .95 or not IsSpaceLike()) {
+        Type ggamma = 1.0 / std::sqrt(1.0 - b2);
+        Type bp = bx * x + by * y + bz * z;
+        Type gamma2 = b2 > 0 ? (ggamma - 1.0) / b2 : 0.0;
+
+        x = x + gamma2 * bp * bx + ggamma * bx * t;
+        y = y + gamma2 * bp * by + ggamma * by * t;
+        z = z + gamma2 * bp * bz + ggamma * bz * t;
+        t = ggamma * (t + bp);
+
+        // for big betas use rapidities instead (B = R^-1B'R, where B' is axis boost (Oz here) and R is Rotation
+        // matrix for spatial part)
+      } else {
+        // calculate direction vector coordinates
+        Type b1 = std::sqrt(b2);
+        Vector3<Type> r_vec{bx / b1, by / b1, bz / b1};
+        Vector3<Type> r_back = rotateUz({0, 0, 1}, r_vec);
+
+        // rotate space vector so that boost direction is {0, 0, 1} in new coordinates
+        auto new_coord = rotateUz({x, y, z}, r_vec);
+        x = new_coord.x, y = new_coord.y, z = new_coord.z;
+
+        BoostAxisRapidity(std::atanh(b1));  // boost along Oz
+        // rotate back
+        new_coord = rotateUz({x, y, z}, r_back);
+        x = new_coord.x, y = new_coord.y, z = new_coord.z;
+      }
+
+      return *this;
     }
 
-    template <typename Type>
-    bool operator==(const LorentzVectorImpl<Type>& a, const LorentzVectorImpl<Type>& b) {
-        return a.e == b.e && a.x == b.x && a.y == b.y && a.z == b.z;
+    // axis from 1 to 3 correspond to x-y-z. Note: this gives correct results only if other axes components are
+    // zero.
+    // TODO: Throw an error otherwise
+    LorentzVectorImpl& BoostAxisRapidity(Type rapidity, uint32_t axis = 3u) {
+      if (axis > 3 or axis < 1) {
+        throw std::runtime_error("Wrong axis in boostAxis. 1 for x, 2 for y, 3 for z.");
+      }
+      if (not IsSpaceLike()) {
+        throw std::runtime_error("Rapidity calculation only viable for space-like 4-vectors. Use boost() instead");
+      }
+      Type inv = std::sqrt(e * e - this->*kFields[axis] * this->*kFields[axis]);
+      Type r_rapidity = rapidity + .5 * (std::log(e + this->*kFields[axis]) - std::log(e - this->*kFields[axis]));
+      e = inv * std::cosh(r_rapidity);
+      this->*kFields[axis] = inv * std::sinh(r_rapidity);
+
+      return *this;
     }
 
-    template <typename Type>
-    bool operator!=(const LorentzVectorImpl<Type>& a, const LorentzVectorImpl<Type>& b) {
-        return !(a == b);
-    }
+    Type Mag2() const { return t * t - (x * x + y * y + z * z); }
+    Type Mag() const { return std::sqrt(Mag2()); }
 
-    template <typename Type>
-    std::ostream& operator<<(std::ostream& out, const LorentzVectorImpl<Type>& vec) {
-        out << "(" << vec.e << ", " << vec.x << ", " << vec.y << ", " << vec.z << ")";
-        return out;
-    }
+    bool IsSpaceLike() const { return Mag2() > 0; }
+    bool IsLightLike() const { return Mag2() == 0; }
+    bool IsTimeLike() const { return Mag2() < 0; }
+  };
 
-    template <typename Type>
-    Vector3<Type> RotateUz(const Vector3<Type> stVec, const Vector3<Type> uzVec) {
-        // NewUzVector must be normalized !
+  template <typename Type>
+  LorentzVectorImpl<Type> operator+(const LorentzVectorImpl<Type>& a, const LorentzVectorImpl<Type>& b) {
+    auto res = a;
+    res += b;
+    return res;
+  }
 
-        Vector3<Type> resVec;
-        auto up = uzVec.x * uzVec.x + uzVec.y * uzVec.y;
+  template <typename Type>
+  LorentzVectorImpl<Type> operator-(const LorentzVectorImpl<Type>& a, const LorentzVectorImpl<Type>& b) {
+    auto res = a;
+    res -= b;
+    return res;
+  }
 
-        if (up > 0) {
-            up = std::sqrt(up);
-            resVec.x = (uzVec.x * uzVec.z * stVec.x - uzVec.y * stVec.y) / up + uzVec.x * stVec.z;
-            resVec.y = (uzVec.y * uzVec.z * stVec.x + uzVec.x * stVec.y) / up + uzVec.y * stVec.z;
-            resVec.z = -up * stVec.x + uzVec.z * stVec.z;
-        } else if (uzVec.z < 0.) {
-            resVec.x = -stVec.x;
-            resVec.y = stVec.y;
-            resVec.z = -stVec.z;
-        } // phi=0  teta=pi
+  template <typename Type, typename Scalar>
+  LorentzVectorImpl<Type> operator*(const LorentzVectorImpl<Type>& vec, Scalar scalar) {
+    auto res = vec;
+    res *= scalar;
+    return res;
+  }
 
-        return resVec;
-    }
-} // namespace cola
+  template <typename Type, typename Scalar>
+  LorentzVectorImpl<Type> operator*(Scalar scalar, const LorentzVectorImpl<Type>& vec) {
+    return vec * scalar;
+  }
 
-#endif // COLA_LORENTZVECTOR_HH
+  template <typename Type, typename Scalar>
+  LorentzVectorImpl<Type> operator/(const LorentzVectorImpl<Type>& vec, Scalar scalar) {
+    auto res = vec;
+    res /= scalar;
+    return res;
+  }
+
+  template <typename Type> bool operator==(const LorentzVectorImpl<Type>& a, const LorentzVectorImpl<Type>& b) {
+    return a.e == b.e && a.x == b.x && a.y == b.y && a.z == b.z;
+  }
+
+  template <typename Type> bool operator!=(const LorentzVectorImpl<Type>& a, const LorentzVectorImpl<Type>& b) {
+    return !(a == b);
+  }
+
+  template <typename Type> std::ostream& operator<<(std::ostream& out, const LorentzVectorImpl<Type>& vec) {
+    out << "(" << vec.e << ", " << vec.x << ", " << vec.y << ", " << vec.z << ")";
+    return out;
+  }
+
+  template <typename Type> Vector3<Type> RotateUz(const Vector3<Type> stVec, const Vector3<Type> uzVec) {
+    // NewUzVector must be normalized !
+
+    Vector3<Type> res_vec;
+    auto up = uzVec.x * uzVec.x + uzVec.y * uzVec.y;
+
+    if (up > 0) {
+      up = std::sqrt(up);
+      res_vec.x = (uzVec.x * uzVec.z * stVec.x - uzVec.y * stVec.y) / up + uzVec.x * stVec.z;
+      res_vec.y = (uzVec.y * uzVec.z * stVec.x + uzVec.x * stVec.y) / up + uzVec.y * stVec.z;
+      res_vec.z = -up * stVec.x + uzVec.z * stVec.z;
+    } else if (uzVec.z < 0.) {
+      res_vec.x = -stVec.x;
+      res_vec.y = stVec.y;
+      res_vec.z = -stVec.z;
+    }  // phi=0  teta=pi
+
+    return res_vec;
+  }
+}  // namespace cola
+
+#endif  // COLA_LORENTZVECTOR_HH
