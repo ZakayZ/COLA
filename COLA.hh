@@ -334,7 +334,7 @@ namespace cola {
         factories[factory->GetFilterName()] = std::move(factory);
       }
 
-      if (sizeof...(Types) > 0) {
+      if constexpr (sizeof...(Types) > 0) {
         AddFilter<Types...>(factories);
       }
     }

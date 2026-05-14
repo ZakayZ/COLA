@@ -94,13 +94,6 @@ install(
     PATTERN "*.cmake"
 )
 
-install(
-    DIRECTORY cmake/
-    DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/COLA/cmake
-    FILES_MATCHING
-    PATTERN "*.cmake"
-)
-
 enable_testing()
 if (BUILD_TESTING)
     add_subdirectory(tests)

@@ -38,13 +38,41 @@ namespace cola {
    *  @param pdgCode PDG code of the ion.
    *  @return AZ of the ion.
    */
-  AZ PdgToAZ(int pdgCode);
+  constexpr AZ PdgToAZ(int pdgCode) {
+    switch (pdgCode) {
+      case 2112:
+        return {1, 0};
+      case 2212:
+        return {1, 1};
+      default: {
+        AZ data = {0, 0};
+        pdgCode /= 10;
+        for (int i = 0; i < 3; i++) {
+          data.first += pdgCode % 10 * static_cast<uint16_t>(std::pow(10, i));
+          pdgCode /= 10;
+        }
+        for (int i = 0; i < 3; i++) {
+          data.second += pdgCode % 10 * static_cast<uint16_t>(std::pow(10, i));
+          pdgCode /= 10;
+        }
+        return data;
+      }
+    }
+  }
 
   /** AZ to PDG code converter.
    *  @param data AZ of the ion.
    *  @return PDG code of the ion
    */
-  int AZToPdg(AZ data);
+  constexpr int AZToPdg(AZ data) {
+    if (data.first == 1 && data.second == 0) {
+      return 2112;
+    }
+    if (data.first == 1 && data.second == 1) {
+      return 2212;
+    }
+    return 1000000000 + data.first * 10 + data.second * 10000;
+  }
 
   /** \defgroup Data Data Classes and supporting methods.
    * @{
