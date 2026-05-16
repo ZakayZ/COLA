@@ -134,21 +134,23 @@ namespace cola {
                                                                        const Vector3<Type> uzVec) {
     // NewUzVector must be normalized !
 
-    Vector3<Type> res_vec;
+    Vector3<Type> resVec;
     double up = uzVec.x * uzVec.x + uzVec.y * uzVec.y;
 
     if (up > 0) {
       up = std::sqrt(up);
-      res_vec.x = (uzVec.x * uzVec.z * stVec.x - uzVec.y * stVec.y) / up + uzVec.x * stVec.z;
-      res_vec.y = (uzVec.y * uzVec.z * stVec.x + uzVec.x * stVec.y) / up + uzVec.y * stVec.z;
-      res_vec.z = -up * stVec.x + uzVec.z * stVec.z;
-    } else if (uzVec.z < 0.) {
-      res_vec.x = -stVec.x;
-      res_vec.y = stVec.y;
-      res_vec.z = -stVec.z;
-    }  // phi=0  teta=pi
+      resVec.x = (uzVec.x * uzVec.z * stVec.x - uzVec.y * stVec.y) / up + uzVec.x * stVec.z;
+      resVec.y = (uzVec.y * uzVec.z * stVec.x + uzVec.x * stVec.y) / up + uzVec.y * stVec.z;
+      resVec.z = -up * stVec.x + uzVec.z * stVec.z;
+    } else if (uzVec.z < 0.) {			//phi = 0, theta = pi
+      resVec.x = -stVec.x;
+      resVec.y = stVec.y;
+      resVec.z = -stVec.z;
+    } else {					//phi = 0, theta = 0
+      return stVec;
+    }
 
-    return res_vec;
+    return resVec;
   }
 
   template <typename Type = double> class LorentzVectorImpl {
