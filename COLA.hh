@@ -297,7 +297,7 @@ namespace cola {
     /** A constructor that moves the configured FilterEnsemble into the manager.
      * @param ensemble Configured model.
      */
-    explicit ColaRunManager(FilterEnsemble&& ensemble) : filterEnsemble_(std::move(ensemble)) {}
+    explicit ColaRunManager(FilterEnsemble&& ensemble) : filter_ensamble_(std::move(ensemble)) {}
 
     ~ColaRunManager() = default;
 
@@ -307,7 +307,7 @@ namespace cola {
     void Run(int n = 1) const;
 
    private:
-    FilterEnsemble filterEnsemble_;
+    FilterEnsemble filter_ensamble_;
   };
 
   class VModule {

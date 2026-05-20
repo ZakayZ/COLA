@@ -204,11 +204,11 @@ namespace cola {
 
   void ColaRunManager::Run(int n) const {
     for (auto k = 0; k < n; ++k) {
-      auto event = (*(filterEnsemble_.generator))();
-      for (const auto& converter : filterEnsemble_.converters) {
+      auto event = (*(filter_ensamble_.generator))();
+      for (const auto& converter : filter_ensamble_.converters) {
         event = std::move(event) | converter;
       }
-      std::move(event) | filterEnsemble_.writer;
+      std::move(event) | filter_ensamble_.writer;
     }
   }
 
@@ -254,7 +254,7 @@ namespace cola {
             throw std::runtime_error("Failed to find " + function_name + " function from: " + entry.path().string());
           }
 
-          throw std::runtime_error("Failed to load module: " + entry.path().string());
+          throw std::runtime_error("Failed to load module: " + entry.path().string() + " with error: " + dlerror());
         }
       }
     }
