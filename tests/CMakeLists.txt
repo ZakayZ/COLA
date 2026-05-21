@@ -16,12 +16,10 @@
 # DAMAGES OR OTHER* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-enable_testing()
-
 find_package(GTest REQUIRED)
 include(GoogleTest)
 
-set(TEST_SRCS lorentz.cc)
+set(TEST_SRCS lorentz.cc cola_test.cc)
 
 add_executable(COLATest ${TEST_SRCS})
 set_target_properties(
@@ -30,6 +28,8 @@ set_target_properties(
                CXX_STANDARD_REQUIRED YES
                CXX_EXTENSIONS NO
                CXX_CLANG_TIDY "${COLA_CMAKE_CXX_CLANG_TIDY}"
+               BUILD_RPATH "${CMAKE_BINARY_DIR}"
+               BUILD_WITH_INSTALL_RPATH FALSE
 )
 
 target_link_libraries(COLATest COLA)

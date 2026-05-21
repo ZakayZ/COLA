@@ -18,7 +18,7 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include <COLA.hh>
+#include <COLA/EventData.hh>
 #include <gtest/gtest.h>
 
 #include <cmath>
