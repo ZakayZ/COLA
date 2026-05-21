@@ -52,29 +52,29 @@ class TestGenerator : public VGenerator {
  public:
   static inline const std::string kName = "TestGenerator";
 
-  int callCounter = 0;
-  EventData referenceData = GetDefaultEventData();
+  int call_counter = 0;
+  EventData reference_data = GetDefaultEventData();
 
   std::unique_ptr<EventData> operator()() override {
-    ++callCounter;
+    ++call_counter;
 
-    return std::make_unique<EventData>(referenceData);
+    return std::make_unique<EventData>(reference_data);
   }
 
  private:
   static constexpr EventData GetDefaultEventData() {
     EventData event;
-    event.iniState.pdgCodeA = 1000010020;
-    event.iniState.pdgCodeB = 1000010020;
-    event.iniState.pZA = 1.0;
-    event.iniState.pZB = 0.0;
-    event.iniState.energy = 10.0;
+    event.ini_state.pdg_code_a = 1000010020;
+    event.ini_state.pdg_code_b = 1000010020;
+    event.ini_state.p_za = 1.0;
+    event.ini_state.p_zb = 0.0;
+    event.ini_state.energy = 10.0;
 
     Particle p1;
-    p1.pdgCode = cola::AZToPdg({1, 0});
+    p1.pdg_code = cola::AZToPdg({1, 0});
     p1.momentum = LorentzVector{.e = 1.0, .x = 0.1, .y = 0.2, .z = 0.3};
     p1.position = LorentzVector{.e = 0.0, .x = 0.0, .y = 0.0, .z = 0.0};
-    p1.pClass = ParticleClass::kProduced;
+    p1.p_class = ParticleClass::kProduced;
     event.particles.push_back(p1);
 
     return event;
@@ -85,10 +85,10 @@ class TestConverter : public VConverter {
  public:
   static inline const std::string kName = "TestConverter";
 
-  int callCounter = 0;
+  int call_counter = 0;
 
   std::unique_ptr<EventData> operator()(std::unique_ptr<EventData>&& data) override {
-    ++callCounter;
+    ++call_counter;
 
     for (auto& particle : data->particles) {
       particle.momentum.x *= 2.0;
@@ -101,12 +101,12 @@ class TestWriter : public VWriter {
  public:
   static inline const std::string kName = "TestWriter";
 
-  int callCounter = 0;
-  std::vector<std::unique_ptr<EventData>> recordedEvents;
+  int call_counter = 0;
+  std::vector<std::unique_ptr<EventData>> recorded_events;
 
   void operator()(std::unique_ptr<EventData>&& data) override {
-    ++callCounter;
-    recordedEvents.emplace_back(std::move(data));
+    ++call_counter;
+    recorded_events.emplace_back(std::move(data));
   }
 };
 
@@ -229,9 +229,9 @@ TEST(ColaPipeline, RunPipeline) {
   ColaRunManager manager(std::move(ensemble));
   manager.Run(3);
 
-  EXPECT_EQ(generator_ptr->callCounter, 3);
-  EXPECT_EQ(converter_ptr->callCounter, 3);
-  EXPECT_EQ(writer_ptr->callCounter, 3);
+  EXPECT_EQ(generator_ptr->call_counter, 3);
+  EXPECT_EQ(converter_ptr->call_counter, 3);
+  EXPECT_EQ(writer_ptr->call_counter, 3);
 }
 
 TEST(ColaTest, MultipleConverters) {
@@ -249,10 +249,10 @@ TEST(ColaTest, MultipleConverters) {
   ColaRunManager manager(std::move(ensemble));
   manager.Run(3);
 
-  EXPECT_EQ(generator_ptr->callCounter, 3);
-  EXPECT_EQ(converter_ptr1->callCounter, 3);
-  EXPECT_EQ(converter_ptr2->callCounter, 3);
-  EXPECT_EQ(writer_ptr->callCounter, 3);
+  EXPECT_EQ(generator_ptr->call_counter, 3);
+  EXPECT_EQ(converter_ptr1->call_counter, 3);
+  EXPECT_EQ(converter_ptr2->call_counter, 3);
+  EXPECT_EQ(writer_ptr->call_counter, 3);
 }
 
 TEST(ColaTest, StageHandling) {
@@ -268,13 +268,13 @@ TEST(ColaTest, StageHandling) {
   ColaRunManager manager(std::move(ensemble));
   manager.Run(1);
 
-  EXPECT_EQ(generator_ptr->callCounter, 1);
-  EXPECT_EQ(converter_ptr->callCounter, 1);
-  EXPECT_EQ(writer_ptr->callCounter, 1);
+  EXPECT_EQ(generator_ptr->call_counter, 1);
+  EXPECT_EQ(converter_ptr->call_counter, 1);
+  EXPECT_EQ(writer_ptr->call_counter, 1);
 
-  ASSERT_GE(writer_ptr->recordedEvents.size(), 1);
-  ASSERT_EQ(writer_ptr->recordedEvents[0]->particles.size(), 1);
-  EXPECT_EQ(writer_ptr->recordedEvents[0]->particles[0].pdgCode, cola::AZToPdg({1, 0}));
+  ASSERT_GE(writer_ptr->recorded_events.size(), 1);
+  ASSERT_EQ(writer_ptr->recorded_events[0]->particles.size(), 1);
+  EXPECT_EQ(writer_ptr->recorded_events[0]->particles[0].pdg_code, cola::AZToPdg({1, 0}));
 }
 
 TEST(ColaTest, ParseAndRun) {
@@ -302,11 +302,11 @@ TEST(ColaTest, ParseAndRun) {
   ColaRunManager manager(std::move(ensemble));
   manager.Run(1);
 
-  EXPECT_EQ(generator_ptr->callCounter, 1);
-  EXPECT_EQ(converter_ptr->callCounter, 1);
-  EXPECT_EQ(writer_ptr->callCounter, 1);
+  EXPECT_EQ(generator_ptr->call_counter, 1);
+  EXPECT_EQ(converter_ptr->call_counter, 1);
+  EXPECT_EQ(writer_ptr->call_counter, 1);
 
-  ASSERT_GE(writer_ptr->recordedEvents.size(), 1);
-  ASSERT_EQ(writer_ptr->recordedEvents[0]->particles.size(), 1);
-  EXPECT_EQ(writer_ptr->recordedEvents[0]->particles[0].pdgCode, cola::AZToPdg({1, 0}));
+  ASSERT_GE(writer_ptr->recorded_events.size(), 1);
+  ASSERT_EQ(writer_ptr->recorded_events[0]->particles.size(), 1);
+  EXPECT_EQ(writer_ptr->recorded_events[0]->particles[0].pdg_code, cola::AZToPdg({1, 0}));
 }

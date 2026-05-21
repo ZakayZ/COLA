@@ -146,7 +146,7 @@ namespace cola {
      *  @param metaData A dictionary with key-value pairs needed for configuring a model.
      *  @return A configured class that is a VFilter child.
      */
-    virtual std::unique_ptr<VFilter> Create(const std::unordered_map<std::string, std::string>& metaData) = 0;
+    virtual std::unique_ptr<VFilter> Create(const std::unordered_map<std::string, std::string>& meta_data) = 0;
 
     virtual FilterType GetFilterType() const = 0;
 
@@ -243,7 +243,7 @@ namespace cola {
      * @param filterMap A dictionary with all relevant information. Note that unique pointers in the dictionary are
      * invalidated.
      */
-    explicit MetaProcessor(FactoryMap&& filterMap);
+    explicit MetaProcessor(FactoryMap&& filter_map);
 
     ~MetaProcessor() = default;
 
@@ -254,16 +254,16 @@ namespace cola {
     void Register(std::unique_ptr<VFactory>&& factory, const std::optional<std::string>& name = std::nullopt);
 
     /** A method to parse a XML-file to set up a configured FilterEnsemble.
-     *  This method opens an XML-file @param fName to get the information to set up the model.
+     *  This method opens an XML-file @param file_name to get the information to set up the model.
      *  Inside the root element should be one <generator> element followed by any number of <converter> elements
      *  (none is possible) and, finally, a <writer> element. Each element must have "name" attribute followed by
      *  any number of additional attributes. These attributes are then passed to the corresponding factory's
      * VFactory::create method as a dictionary with keys being attribute names and values - attribute values. This
      * method throws an error if a relevant factory isn't found or XML-file is malformed.
-     *  @param fName Name with the configuration XML-file.
+     *  @param file_name Name with the configuration XML-file.
      *  @return A configured FilterEnsemble.
      */
-    FilterEnsemble Parse(const std::string& fName) const;
+    FilterEnsemble Parse(const std::string& file_name) const;
 
     /** A method to parse a XML-file to set up a configured FilterEnsemble.
      *  @param contents configuration XML-file contents
@@ -272,20 +272,20 @@ namespace cola {
     FilterEnsemble Parse(std::istream& contents) const;
 
    private:
-    FactoryMap generatorMap_;
-    FactoryMap converterMap_;
-    FactoryMap writerMap_;
+    FactoryMap generator_map_;
+    FactoryMap converter_map_;
+    FactoryMap writer_map_;
 
     FilterEnsemble BuildFilterEnsemble(const tinyxml2::XMLDocument& document) const;
 
     void RegisterGenerator(std::unique_ptr<VFactory>&& factory, const std::string& name) {
-      generatorMap_.emplace(name, std::move(factory));
+      generator_map_.emplace(name, std::move(factory));
     }
     void RegisterConverter(std::unique_ptr<VFactory>&& factory, const std::string& name) {
-      converterMap_.emplace(name, std::move(factory));
+      converter_map_.emplace(name, std::move(factory));
     }
     void RegisterWriter(std::unique_ptr<VFactory>&& factory, const std::string& name) {
-      writerMap_.emplace(name, std::move(factory));
+      writer_map_.emplace(name, std::move(factory));
     }
   };
 
@@ -346,8 +346,8 @@ namespace cola {
     }
   };
 
-  std::unique_ptr<cola::VModule> LoadModule(const std::string& moduleName,
-                                            const std::optional<std::string>& libDirectory = std::nullopt);
+  std::unique_ptr<cola::VModule> LoadModule(const std::string& module_name,
+                                            const std::optional<std::string>& lib_directory = std::nullopt);
 }  // namespace cola
 
 extern "C" {

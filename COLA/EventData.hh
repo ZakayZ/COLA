@@ -35,25 +35,25 @@ namespace cola {
 
   /** PDG code to AZ converter.
    *  **WARNING:** this function is intended to process heavy ions PDG codes.
-   *  @param pdgCode PDG code of the ion.
+   *  @param pdg_code PDG code of the ion.
    *  @return AZ of the ion.
    */
-  constexpr AZ PdgToAZ(int pdgCode) {
-    switch (pdgCode) {
+  constexpr AZ PdgToAZ(int pdg_code) {
+    switch (pdg_code) {
       case 2112:
         return {1, 0};
       case 2212:
         return {1, 1};
       default: {
         AZ data = {0, 0};
-        pdgCode /= 10;
+        pdg_code /= 10;
         for (int i = 0; i < 3; i++) {
-          data.first += pdgCode % 10 * static_cast<uint16_t>(std::pow(10, i));
-          pdgCode /= 10;
+          data.first += pdg_code % 10 * static_cast<uint16_t>(std::pow(10, i));
+          pdg_code /= 10;
         }
         for (int i = 0; i < 3; i++) {
-          data.second += pdgCode % 10 * static_cast<uint16_t>(std::pow(10, i));
-          pdgCode /= 10;
+          data.second += pdg_code % 10 * static_cast<uint16_t>(std::pow(10, i));
+          pdg_code /= 10;
         }
         return data;
       }
@@ -108,8 +108,8 @@ namespace cola {
 
     LorentzVector momentum; /**< Momentum <e, x, y, z> vector. */
 
-    int pdgCode;          /**< PDG code of the particle. */
-    ParticleClass pClass; /**< Data about particle origin. See ParticleClass for more info.*/
+    int pdg_code;          /**< PDG code of the particle. */
+    ParticleClass p_class; /**< Data about particle origin. See ParticleClass for more info.*/
   };
 
   /**
@@ -121,37 +121,37 @@ namespace cola {
    *  This structure contains data about initial state of any given event.
    */
   struct EventIniState {
-    int pdgCodeA; /**< PDG code of the projectile. */
-    int pdgCodeB; /**< PDG code of the target. */
+    int pdg_code_a; /**< PDG code of the projectile. */
+    int pdg_code_b; /**< PDG code of the target. */
 
-    double pZA;    /** Axial momentum of the projectile */
-    double pZB;    /** Axial momentum of the target */
+    double p_za;   /** Axial momentum of the projectile */
+    double p_zb;   /** Axial momentum of the target */
     double energy; /** Incidental energy of the event. Depending on pZB being zero, this is either \f$E/A\f$ of
                       target or \f$\sqrt{s_{NN}}\f$. */
 
-    float sectNN; /** Nucleon-Nucleon cross section from generator. */
-    float b;      /** Impact parameter of the event. */
+    float sect_nn; /** Nucleon-Nucleon cross section from generator. */
+    float b;       /** Impact parameter of the event. */
 
-    int nColl;   /** Diagnostic. Total number of collisions. */
-    int nCollPP; /** Diagnostic. Number of proton-proton. */
-    int nCollPN; /** Diagnostic. Number of proton-neutron collisions. */
-    int nCollNN; /** Diagnostic. Number of neutron-neutron collisions. */
-    int nPart;   /** Diagnostic. Total number of participants. */
-    int nPartA;  /** Diagnostic. Number of participants from the projectile nucleus. */
-    int nPartB;  /** Diagnostic. Number of participants from the target nucleus. */
+    int num_coll;    /** Diagnostic. Total number of collisions. */
+    int num_coll_pp; /** Diagnostic. Number of proton-proton. */
+    int num_coll_pn; /** Diagnostic. Number of proton-neutron collisions. */
+    int num_coll_nn; /** Diagnostic. Number of neutron-neutron collisions. */
+    int num_part;    /** Diagnostic. Total number of participants. */
+    int num_part_a;  /** Diagnostic. Number of participants from the projectile nucleus. */
+    int num_part_b;  /** Diagnostic. Number of participants from the target nucleus. */
 
-    float phiRotA;   /** Diagnostic. Polar angle \f$\phi\f$ of rotation of the projectile nucleon. */
-    float thetaRotA; /** Diagnostic. Polar angle \f&\Theta\f$ of rotation of the projectile nucleon. */
-    float phiRotB;   /** Diagnostic. Polar angle \f$\phi\f$ of rotation of the target nucleon. */
-    float thetaRotB; /** Diagnostic. Polar angle \f$\Theta\f$ of rotation of the target nucleon. */
+    float phi_rot_a;   /** Diagnostic. Polar angle \f$\phi\f$ of rotation of the projectile nucleon. */
+    float theta_rot_a; /** Diagnostic. Polar angle \f&\Theta\f$ of rotation of the projectile nucleon. */
+    float phi_rot_b;   /** Diagnostic. Polar angle \f$\phi\f$ of rotation of the target nucleon. */
+    float theta_rot_b; /** Diagnostic. Polar angle \f$\Theta\f$ of rotation of the target nucleon. */
 
-    EventParticles iniStateParticles; /** The array of all Particles just before the event. */
+    EventParticles ini_state_particles; /** The array of all Particles just before the event. */
   };
 
   /** A structure combining EventIniState and EventParticles of the event.
    */
   struct EventData {
-    EventIniState iniState;
+    EventIniState ini_state;
     EventParticles particles;
   };
 
