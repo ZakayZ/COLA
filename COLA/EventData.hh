@@ -124,8 +124,8 @@ namespace cola {
     int pdg_code_a; /**< PDG code of the projectile. */
     int pdg_code_b; /**< PDG code of the target. */
 
-    double p_za;   /** Axial momentum of the projectile */
-    double p_zb;   /** Axial momentum of the target */
+    double pz_a;   /** Axial momentum of the projectile */
+    double pz_b;   /** Axial momentum of the target */
     double energy; /** Incidental energy of the event. Depending on pZB being zero, this is either \f$E/A\f$ of
                       target or \f$\sqrt{s_{NN}}\f$. */
 

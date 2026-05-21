@@ -107,7 +107,7 @@ CheckOptions:
   - key: readability-identifier-length.IgnoredParameterNames
     value: '^(i|j|k|x|y|z|n|a|b)$'
   - key: readability-identifier-length.MinimumLoopCounterNameLength
-    value: 3
+    value: 2
   - key: readability-identifier-length.IgnoredLoopCounterNames
     value: '^(i|j|k|n)$'
   - key: readability-identifier-length.MinimumExceptionNameLength

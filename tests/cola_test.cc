@@ -66,8 +66,8 @@ class TestGenerator : public VGenerator {
     EventData event;
     event.ini_state.pdg_code_a = 1000010020;
     event.ini_state.pdg_code_b = 1000010020;
-    event.ini_state.p_za = 1.0;
-    event.ini_state.p_zb = 0.0;
+    event.ini_state.pz_a = 1.0;
+    event.ini_state.pz_b = 0.0;
     event.ini_state.energy = 10.0;
 
     Particle p1;

@@ -233,11 +233,12 @@ namespace cola {
 
   std::unique_ptr<cola::VModule> LoadModule(const std::string& module_name,
                                             const std::optional<std::string>& lib_directory) {
-    auto cola_directory = lib_directory.value_or(
-        std::getenv(env_dir_variable.c_str()) != nullptr ? std::getenv(env_dir_variable.c_str()) : "~/.local/lib");
+    const char* cola_dir = std::getenv(env_dir_variable.c_str());
+    auto cola_directory = lib_directory.value_or(cola_dir != nullptr ? std::string(cola_dir) + "/lib" : "~/.local/lib");
     if (cola_directory.size() > 1 && cola_directory.substr(0, 2) == "~/") {
       cola_directory = std::filesystem::path(std::getenv("HOME")) / cola_directory.substr(2);
     }
+
     for (const auto& cola_entry : std::filesystem::directory_iterator(cola_directory)) {
       if (!cola_entry.is_directory() || cola_entry.path().filename() != module_name) {
         continue;
