@@ -138,24 +138,24 @@ namespace cola {
   // assuming decart coordinate systems, get Vector coordinates in a new system, where uzVec is Oz unit vector
   // coordinates in the old system.
   template <typename Type>
-  std::enable_if_t<std::is_arithmetic_v<Type>, Vector3<Type>> RotateUz(const Vector3<Type> stVec,
-                                                                       const Vector3<Type> uzVec) {
+  std::enable_if_t<std::is_arithmetic_v<Type>, Vector3<Type>> RotateUz(const Vector3<Type> st_vec,
+                                                                       const Vector3<Type> uz_vec) {
     // NewUzVector must be normalized !
 
     Vector3<Type> res_vec;
-    double up = uzVec.x * uzVec.x + uzVec.y * uzVec.y;
+    double up = uz_vec.x * uz_vec.x + uz_vec.y * uz_vec.y;
 
     if (up > 0) {
       up = std::sqrt(up);
-      res_vec.x = (uzVec.x * uzVec.z * stVec.x - uzVec.y * stVec.y) / up + uzVec.x * stVec.z;
-      res_vec.y = (uzVec.y * uzVec.z * stVec.x + uzVec.x * stVec.y) / up + uzVec.y * stVec.z;
-      res_vec.z = -up * stVec.x + uzVec.z * stVec.z;
-    } else if (uzVec.z < 0.) {  // phi = 0, theta = pi
-      res_vec.x = -stVec.x;
-      res_vec.y = stVec.y;
-      res_vec.z = -stVec.z;
+      res_vec.x = (uz_vec.x * uz_vec.z * st_vec.x - uz_vec.y * st_vec.y) / up + uz_vec.x * st_vec.z;
+      res_vec.y = (uz_vec.y * uz_vec.z * st_vec.x + uz_vec.x * st_vec.y) / up + uz_vec.y * st_vec.z;
+      res_vec.z = -up * st_vec.x + uz_vec.z * st_vec.z;
+    } else if (uz_vec.z < 0.) {  // phi = 0, theta = pi
+      res_vec.x = -st_vec.x;
+      res_vec.y = st_vec.y;
+      res_vec.z = -st_vec.z;
     } else {  // phi = 0, theta = 0
-      return stVec;
+      return st_vec;
     }
 
     return res_vec;
