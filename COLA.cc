@@ -47,7 +47,7 @@ namespace {
 
   std::unique_ptr<cola::VFilter> CreateFilterFromNode(
       const tinyxml2::XMLElement* element,
-      const std::unordered_map<std::string, std::unique_ptr<cola::VFactory>>& factoryMap) {
+      const std::unordered_map<std::string, std::unique_ptr<cola::VFactory>>& factory_map) {
     auto params = CollectAttributes(element);
 
     const auto filter_name = std::move(params.at(filter_name_attribute));
@@ -62,7 +62,7 @@ namespace {
       }
     }
 
-    return factoryMap.at(filter_name)->Create(params);
+    return factory_map.at(filter_name)->Create(params);
   }
 
   template <typename Target, typename Source>
@@ -81,7 +81,7 @@ namespace cola {
 
   // converters
 
-  AZ Particle::GetAZ() const { return PdgToAZ(pdgCode); }
+  AZ Particle::GetAZ() const { return PdgToAZ(pdg_code); }
 
   // operators
 
@@ -99,8 +99,8 @@ namespace cola {
 
   // MetaProcessor
 
-  MetaProcessor::MetaProcessor(FactoryMap&& filterMap) {
-    for (auto& [name, factory] : filterMap) {
+  MetaProcessor::MetaProcessor(FactoryMap&& filter_map) {
+    for (auto& [name, factory] : filter_map) {
       Register(std::move(factory), name);
     }
   }
@@ -126,13 +126,13 @@ namespace cola {
     }
   }
 
-  FilterEnsemble MetaProcessor::Parse(const std::string& fName) const {
+  FilterEnsemble MetaProcessor::Parse(const std::string& file_name) const {
     using namespace tinyxml2;
     std::cout << "Parsing XML file:" << '\n';
     tinyxml2::XMLDocument file;
-    auto code = file.LoadFile(fName.c_str());
+    auto code = file.LoadFile(file_name.c_str());
     if (code != tinyxml2::XML_SUCCESS) {
-      throw std::runtime_error("ERROR in MetaProcessor: Couldn't open file `" + fName +
+      throw std::runtime_error("ERROR in MetaProcessor: Couldn't open file `" + file_name +
                                "`.\nError code (tinyxml2): " + std::to_string(code));
     }
 
@@ -162,7 +162,7 @@ namespace cola {
         if (generator != nullptr) {
           throw std::runtime_error("Found multiple generators");
         }
-        generator = DynamicPointerCast<VGenerator>(CreateFilterFromNode(elem, generatorMap_));
+        generator = DynamicPointerCast<VGenerator>(CreateFilterFromNode(elem, generator_map_));
         continue;
       }
       if (generator == nullptr) {
@@ -173,12 +173,12 @@ namespace cola {
       }
 
       if (elem->Name() == "converter"sv) {
-        converters.emplace_back(DynamicPointerCast<VConverter>(CreateFilterFromNode(elem, converterMap_)));
+        converters.emplace_back(DynamicPointerCast<VConverter>(CreateFilterFromNode(elem, converter_map_)));
         continue;
       }
 
       if (elem->Name() == "writer"sv) {
-        writer = DynamicPointerCast<VWriter>(CreateFilterFromNode(elem, writerMap_));
+        writer = DynamicPointerCast<VWriter>(CreateFilterFromNode(elem, writer_map_));
         continue;
       }
 
@@ -204,11 +204,11 @@ namespace cola {
 
   void ColaRunManager::Run(int n) const {
     for (auto k = 0; k < n; ++k) {
-      auto event = (*(filterEnsemble_.generator))();
-      for (const auto& converter : filterEnsemble_.converters) {
+      auto event = (*(filter_ensamble_.generator))();
+      for (const auto& converter : filter_ensamble_.converters) {
         event = std::move(event) | converter;
       }
-      std::move(event) | filterEnsemble_.writer;
+      std::move(event) | filter_ensamble_.writer;
     }
   }
 
@@ -231,15 +231,16 @@ namespace cola {
   static const std::string env_dir_variable = "COLA_DIR";
   using LoadModuleFunction = decltype(LoadCOLAModule);
 
-  std::unique_ptr<cola::VModule> LoadModule(const std::string& moduleName,
-                                            const std::optional<std::string>& libDirectory) {
-    auto cola_directory = libDirectory.value_or(
-        std::getenv(env_dir_variable.c_str()) != nullptr ? std::getenv(env_dir_variable.c_str()) : "~/.local/lib");
+  std::unique_ptr<cola::VModule> LoadModule(const std::string& module_name,
+                                            const std::optional<std::string>& lib_directory) {
+    const char* cola_dir = std::getenv(env_dir_variable.c_str());
+    auto cola_directory = lib_directory.value_or(cola_dir != nullptr ? std::string(cola_dir) + "/lib" : "~/.local/lib");
     if (cola_directory.size() > 1 && cola_directory.substr(0, 2) == "~/") {
       cola_directory = std::filesystem::path(std::getenv("HOME")) / cola_directory.substr(2);
     }
+
     for (const auto& cola_entry : std::filesystem::directory_iterator(cola_directory)) {
-      if (!cola_entry.is_directory() || cola_entry.path().filename() != moduleName) {
+      if (!cola_entry.is_directory() || cola_entry.path().filename() != module_name) {
         continue;
       }
 
@@ -254,12 +255,12 @@ namespace cola {
             throw std::runtime_error("Failed to find " + function_name + " function from: " + entry.path().string());
           }
 
-          throw std::runtime_error("Failed to load module: " + entry.path().string());
+          throw std::runtime_error("Failed to load module: " + entry.path().string() + " with error: " + dlerror());
         }
       }
     }
 
-    throw std::runtime_error("Failed to find module: " + moduleName + " in: " + cola_directory);
+    throw std::runtime_error("Failed to find module: " + module_name + " in: " + cola_directory);
   }
 
 }  // namespace cola
