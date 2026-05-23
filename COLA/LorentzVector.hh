@@ -233,15 +233,15 @@ namespace cola {
         // calculate direction vector coordinates
         Type b1 = std::sqrt(b2);
         Vector3<Type> r_vec{bx / b1, by / b1, bz / b1};
-        Vector3<Type> r_back = RotateUZ({0, 0, 1}, r_vec);
+        Vector3<Type> r_back = RotateUz({0, 0, 1}, r_vec);
 
         // rotate space vector so that boost direction is {0, 0, 1} in new coordinates
-        auto new_coord = RotateUZ({x, y, z}, r_vec);
+        auto new_coord = RotateUz({x, y, z}, r_vec);
         x = new_coord.x, y = new_coord.y, z = new_coord.z;
 
         BoostAxisRapidity(std::atanh(b1));  // boost along Oz
         // rotate back
-        new_coord = RotateUZ({x, y, z}, r_back);
+        new_coord = RotateUz({x, y, z}, r_back);
         x = new_coord.x, y = new_coord.y, z = new_coord.z;
       }
 

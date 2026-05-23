@@ -54,7 +54,7 @@ namespace cola {
     virtual ~VFilter() = 0;
   };
 
-  VFilter::~VFilter() = default;
+  inline VFilter::~VFilter() = default;
 
   /** Generator abstract class.
    *  This is a generator interface. Generators are the first step of the MC simulation: they take data from existing
@@ -76,7 +76,7 @@ namespace cola {
     virtual std::unique_ptr<EventData> operator()() = 0;
   };
 
-  VGenerator::~VGenerator() = default;
+  inline VGenerator::~VGenerator() = default;
 
   /** Converter abstract class.
    *  This is a converter interface. It is inherited by all filters that are in the middle of MC simulation.
@@ -99,7 +99,7 @@ namespace cola {
     virtual std::unique_ptr<EventData> operator()(std::unique_ptr<EventData>&& data) = 0;
   };
 
-  VConverter::~VConverter() = default;
+  inline VConverter::~VConverter() = default;
 
   /** Writer abstract class.
    *  This is a writer interface. Writers are what the name suggests - they implement writing results into different
@@ -125,7 +125,7 @@ namespace cola {
     virtual void operator()(std::unique_ptr<EventData>&& data) = 0;
   };
 
-  VWriter::~VWriter() = default;
+  inline VWriter::~VWriter() = default;
 
   /** An enum for marking Filter types.
    */

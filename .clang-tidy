@@ -33,6 +33,7 @@ Checks: >
   -performance-enum-size,
   -readability-magic-numbers,
   -readability-redundant-declaration,
+  -readability-redundant-inline-specifier,
   -readability-function-cognitive-complexity,
   -readability-math-missing-parentheses,
   -readability-uppercase-literal-suffix,
