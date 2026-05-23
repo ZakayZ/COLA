@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2024-2025 Alexandr Svetlichnyi, Savva Savenkov, Artemii Novikov
+# Copyright (c) 2024-2026 Alexandr Svetlichnyi, Savva Savenkov, Artemii Novikov
 
 # Permission is hereby granted, free of charge, to any person obtaining a copy of this software and
 # associated documentation files (the "Software"), to deal in the Software without restriction,
@@ -19,9 +19,11 @@
 cmake_minimum_required(VERSION 3.13)
 project(
     COLA
-    VERSION 0.3.3
+    VERSION 1.0
     LANGUAGES CXX
 )
+
+option(BUILD_TESTING "Run tests on build" OFF)
 
 add_subdirectory(tinyxml2)
 
@@ -30,7 +32,7 @@ add_library(COLA SHARED COLA.cc)
 target_compile_features(COLA PUBLIC cxx_std_17)
 
 target_include_directories(
-    COLA PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}> $<INSTALL_INTERFACE:include>
+    COLA PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR};${PROJECT_SOURCE_DIR}/COLA> $<INSTALL_INTERFACE:include>
 )
 
 target_link_libraries(COLA PRIVATE tinyxml2)
@@ -40,9 +42,12 @@ set(COLA_CMAKE_CXX_CLANG_TIDY
     CACHE STRING "variable will be passed to CMAKE_CXX_CLANG_TIDY of COLA target"
 )
 
+# Public headers for proper target installation
+set(COLA_PUBLIC_HEADERS "COLA.hh" "COLA/EventData.hh" "COLA/LorentzVector.hh")
+
 set_target_properties(
     COLA
-    PROPERTIES PUBLIC_HEADER "COLA.hh"
+    PROPERTIES PUBLIC_HEADER "${COLA_PUBLIC_HEADERS}"
                VERSION "${COLA_VERSION}"
                SOVERSION "${COLA_VERSION_MAJOR}"
                CXX_CLANG_TIDY "${COLA_CMAKE_CXX_CLANG_TIDY}"
@@ -71,12 +76,12 @@ write_basic_package_version_file(
 
 install(EXPORT COLAExport DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/COLA)
 
-install(
-    DIRECTORY ${PROJECT_SOURCE_DIR}/COLA
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-    FILES_MATCHING
-    PATTERN "*.hh"
-)
+# install(
+#     DIRECTORY ${PROJECT_SOURCE_DIR}/COLA
+#     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+#     FILES_MATCHING
+#     PATTERN "*.hh"
+# )
 
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/COLAConfig.cmake"
               "${CMAKE_CURRENT_BINARY_DIR}/COLAConfigVersion.cmake"

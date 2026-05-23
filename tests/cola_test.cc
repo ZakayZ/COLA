@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2024-2025 Alexandr Svetlichnyi, Savva Savenkov, Artemii Novikov
+ * Copyright (c) 2024-2026 Alexandr Svetlichnyi, Savva Savenkov, Artemii Novikov
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -18,12 +18,18 @@
  * THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
+#include "EventData.hh"
+
 #include <COLA.hh>
 #include <gtest/gtest.h>
 
 #include <cstdint>
 #include <memory>
 #include <sstream>
+#include <stdexcept>
+#include <string>
+#include <utility>
+#include <vector>
 
 using namespace cola;
 
@@ -62,7 +68,7 @@ class TestGenerator : public VGenerator {
   }
 
  private:
-  static constexpr EventData GetDefaultEventData() {
+  static EventData GetDefaultEventData() {
     EventData event;
     event.iniState.pdgCodeA = 1000010020;
     event.iniState.pdgCodeB = 1000010020;

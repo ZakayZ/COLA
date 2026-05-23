@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2024-2025 Alexandr Svetlichnyi, Savva Savenkov, Artemii Novikov
+ * Copyright (c) 2024-2026 Alexandr Svetlichnyi, Savva Savenkov, Artemii Novikov
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -20,15 +20,23 @@
 
 #include "COLA.hh"
 
+#include "EventData.hh"
+
 #include <dlfcn.h>
 #include <tinyxml2.h>
 
+#include <cstdlib>
 #include <filesystem>
 #include <iostream>
 #include <iterator>
+#include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 using namespace std::string_view_literals;
 

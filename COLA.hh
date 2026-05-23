@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2024-2025 Alexandr Svetlichnyi, Savva Savenkov, Artemii Novikov
+ * Copyright (c) 2024-2026 Alexandr Svetlichnyi, Savva Savenkov, Artemii Novikov
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,12 +21,15 @@
 #ifndef COLA_COLA_HH
 #define COLA_COLA_HH
 
-#include "COLA/EventData.hh"
+#include "EventData.hh"
 
+#include <istream>
 #include <memory>
 #include <optional>
+#include <string>
 #include <type_traits>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace tinyxml2 {
@@ -51,7 +54,7 @@ namespace cola {
     virtual ~VFilter() = 0;
   };
 
-  inline VFilter::~VFilter() = default;
+  VFilter::~VFilter() = default;
 
   /** Generator abstract class.
    *  This is a generator interface. Generators are the first step of the MC simulation: they take data from existing
@@ -73,7 +76,7 @@ namespace cola {
     virtual std::unique_ptr<EventData> operator()() = 0;
   };
 
-  inline VGenerator::~VGenerator() = default;
+  VGenerator::~VGenerator() = default;
 
   /** Converter abstract class.
    *  This is a converter interface. It is inherited by all filters that are in the middle of MC simulation.
@@ -96,7 +99,7 @@ namespace cola {
     virtual std::unique_ptr<EventData> operator()(std::unique_ptr<EventData>&& data) = 0;
   };
 
-  inline VConverter::~VConverter() = default;
+  VConverter::~VConverter() = default;
 
   /** Writer abstract class.
    *  This is a writer interface. Writers are what the name suggests - they implement writing results into different
@@ -122,7 +125,7 @@ namespace cola {
     virtual void operator()(std::unique_ptr<EventData>&& data) = 0;
   };
 
-  inline VWriter::~VWriter() = default;
+  VWriter::~VWriter() = default;
 
   /** An enum for marking Filter types.
    */
