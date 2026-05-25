@@ -32,10 +32,8 @@ add_library(COLA SHARED COLA.cc)
 target_compile_features(COLA PUBLIC cxx_std_17)
 
 target_include_directories(
-    COLA PUBLIC 
-        "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>"
-        "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/COLA>"
-        $<INSTALL_INTERFACE:include>
+    COLA PUBLIC "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>"
+                "$<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/COLA>" $<INSTALL_INTERFACE:include>
 )
 
 target_link_libraries(COLA PRIVATE tinyxml2)
@@ -109,4 +107,3 @@ endif ()
 
 include(cmake/COLAQualityTools.cmake)
 setup_cola_quality_tools(EXCLUDE_PATTERNS ".*/tinyxml2/.*")
-
