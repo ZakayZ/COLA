@@ -109,3 +109,4 @@ endif ()
 
 include(cmake/COLAQualityTools.cmake)
 setup_cola_quality_tools(EXCLUDE_PATTERNS ".*/tinyxml2/.*")
+
