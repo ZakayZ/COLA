@@ -77,17 +77,8 @@ function (setup_cola_quality_tools)
         message(STATUS "cmake-format: ${CMAKE_FORMAT_EXE}")
     endif ()
 
-    add_custom_target(
-        uninstall
-        COMMAND
-            bash -c "
-            if [ -f ${CMAKE_BINARY_DIR}/install_manifest.txt ]; then
-                cat ${CMAKE_BINARY_DIR}/install_manifest.txt | xargs rm -f
-                echo 'Uninstall completed'
-            else
-                echo 'No install_manifest.txt found'
-            fi
-        "
+    add_custom_target(uninstall
+        COMMAND ${CMAKE_COMMAND} -P ${CMAKE_SOURCE_DIR}/cmake/uninstall.cmake
         COMMENT "Uninstalling project"
     )
 

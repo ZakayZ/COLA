@@ -1,0 +1,11 @@
+# cmake/uninstall.cmake
+if(EXISTS "${CMAKE_BINARY_DIR}/install_manifest.txt")
+    file(STRINGS "${CMAKE_BINARY_DIR}/install_manifest.txt" files)
+    foreach(file ${files})
+        message(STATUS "Removing: ${file}")
+        execute_process(COMMAND ${CMAKE_COMMAND} -E remove "${file}")
+    endforeach()
+    message(STATUS "Uninstall completed")
+else()
+    message(STATUS "No install_manifest.txt found")
+endif()
