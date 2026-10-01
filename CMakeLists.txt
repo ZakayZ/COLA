@@ -77,12 +77,12 @@ write_basic_package_version_file(
 
 install(EXPORT COLAExport DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/COLA)
 
-# install(
-#     DIRECTORY ${PROJECT_SOURCE_DIR}/COLA
-#     DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-#     FILES_MATCHING
-#     PATTERN "*.hh"
-# )
+install(
+    DIRECTORY ${PROJECT_SOURCE_DIR}/COLA
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    FILES_MATCHING
+    PATTERN "*.hh"
+)
 
 install(FILES "${CMAKE_CURRENT_BINARY_DIR}/COLAConfig.cmake"
               "${CMAKE_CURRENT_BINARY_DIR}/COLAConfigVersion.cmake"
