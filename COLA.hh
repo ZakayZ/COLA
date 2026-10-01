@@ -23,7 +23,6 @@
 
 #include "EventData.hh"
 
-#include <cstdint>
 #include <istream>
 #include <memory>
 #include <optional>
@@ -101,19 +100,6 @@ namespace cola {
   };
 
   inline VConverter::~VConverter() = default;
-
-  /** Optional profiling interface for converters that invoke a foreign-language callback.
-   *
-   * The duration measures the most recent callback only. It deliberately excludes
-   * the adapter's event marshaling and ownership work, which lets a caller report
-   * those costs separately.
-   */
-  class VTimedConverter {
-   public:
-    virtual ~VTimedConverter() = default;
-
-    virtual std::uint64_t LastCallbackNanoseconds() const = 0;
-  };
 
   /** Writer abstract class.
    *  This is a writer interface. Writers are what the name suggests - they implement writing results into different
